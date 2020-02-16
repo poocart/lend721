@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { Loader, MetaMaskButton, Modal, Button, Text, Heading, Box, Card } from 'rimble-ui'
 import axios from 'axios';
 import Web3 from 'web3';
 import isEmpty from 'lodash/isEmpty';
+import ERC721Lending from '../../../contracts/ERC721Lending.sol';
 
 const GlobalStyle = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css?family=Ubuntu&display=swap');
@@ -194,10 +195,8 @@ const tryConnectAccount = async (forceEnable) => {
 };
 
 const loadLendContract = async (networkId) => {
-  const ERC721Lending = require('./../../../contracts/ERC721Lending.sol');
   const deployedNetwork = ERC721Lending.networks[networkId.toString()];
   const contract = await new window.web3.eth.Contract(ERC721Lending.abi, deployedNetwork && deployedNetwork.address);
-  console.log('contract: ', contract);
   return Promise.resolve(contract);
 };
 
@@ -276,7 +275,7 @@ const App = () => {
             </>
           )}
           {showLoading && <Loader style={{ marginTop: 65 }} size="40px" />}
-          <Modal isOpen={!!lendTarget}>
+          <Modal isOpen={!!lendTarget || !!borrowTarget}>
             <Card width={"420px"} p={0}>
               <Button.Text
                 icononly
@@ -299,7 +298,7 @@ const App = () => {
               )}
               {!isEmpty(borrowTarget) && (
                 <Box p={4} mb={3}>
-                  <Heading.h3>Borrow {lendTarget.name}</Heading.h3>
+                  <Heading.h3>Borrow {borrowTarget.name}</Heading.h3>
                   <Text style={{ marginTop: 10 }}>TODO: borrow details</Text>
                   <Button style={{ marginTop: 25 }}  size="small">1. Send lend smart contract calculated DAI collateral to it</Button>
                   <Button style={{ marginTop: 5 }} size="small">2. Set borrow start</Button>
