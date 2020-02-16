@@ -194,7 +194,7 @@ const tryConnectAccount = async (forceEnable) => {
 };
 
 const loadLendContract = async (networkId) => {
-  const ERC721Lending = require('../../../contracts/ERC721Lending.sol');
+  const ERC721Lending = require('./../../../contracts/ERC721Lending.sol');
   const deployedNetwork = ERC721Lending.networks[networkId.toString()];
   const contract = await new window.web3.eth.Contract(ERC721Lending.abi, deployedNetwork && deployedNetwork.address);
   console.log('contract: ', contract);
