@@ -6,11 +6,11 @@
     "test": "mocha --exit --recursive test"
   },
   "dependencies": {
-    "@openzeppelin/cli": "^2.7.1",
     "@openzeppelin/contracts": "^2.5.0",
     "@openzeppelin/contracts-ethereum-package": "^2.4.0"
   },
   "devDependencies": {
+    "@openzeppelin/cli": "^2.7.1",
     "@openzeppelin/test-environment": "^0.1.2",
     "@truffle/hdwallet-provider": "^1.0.31",
     "chai": "^4.2.0",

@@ -39,6 +39,7 @@
     ]
   },
   "devDependencies": {
+    "@openzeppelin/cli": "^2.7.1",
     "oz": "^5.0.3",
     "react-app-rewired": "^2.1.5"
   }
