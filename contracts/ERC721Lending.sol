@@ -4,6 +4,8 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/ERC721Full.sol";
 
+// 0xc3dbf84abb494ce5199d5d4d815b10ec29529ff8 DAI ERC20 in Rinkeby testnet
+
 contract ERC721Lending is Initializable {
   struct ERC721ForLend {
     uint256 durationMilliseconds;
@@ -17,7 +19,7 @@ contract ERC721Lending is Initializable {
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
 
   function initialize() initializer public {
-    acceptedPayTokenAddress = address(0x26b4AFb60d6C903165150C6F0AA14F8016bE4aec);
+    acceptedPayTokenAddress = address(0xc3dbf84Abb494ce5199D5d4D815b10EC29529ff8);
   }
 
   function lendForTime(address tokenAddress, uint256 tokenId, uint256 durationMilliseconds, uint256 initialWorth, uint256 interest) public {

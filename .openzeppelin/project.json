@@ -1,0 +1,27 @@
+{
+  "manifestVersion": "2.2",
+  "contracts": {
+    "ERC721Lending": "ERC721Lending"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-ethereum-package": "^2.4.0"
+  },
+  "name": "P2P_ER721_Lending",
+  "version": "0.0.1",
+  "compiler": {
+    "compilerSettings": {
+      "optimizer": {
+        "enabled": false,
+        "runs": "200"
+      }
+    },
+    "typechain": {
+      "enabled": false
+    },
+    "manager": "openzeppelin",
+    "solcVersion": "0.5.16",
+    "artifactsDir": "build/contracts",
+    "contractsDir": "contracts"
+  },
+  "telemetryOptIn": true
+}
