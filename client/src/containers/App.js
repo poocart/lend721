@@ -217,10 +217,10 @@ const App = () => {
 
   const connectAccount = (forceEnable) => {
     tryConnectAccount(forceEnable)
-      .then(async ({ address, networkId: connectedNetworkId }) => {
+      .then(async ({ address: connectedAddress, networkId: connectedNetworkId }) => {
         setLoadingApp(false);
-        if (!address || connecting) return;
-        setAddress(address);
+        if (!forceEnable && (!connectedAddress || connecting)) return;
+        setAddress(connectedAddress);
         setNetworkId(connectedNetworkId);
         loadCollectibles(address).then(setOwnedCollectibles);
         loadCollectibles(lendContractAddress).then(setCollectiblesForBorrow);
