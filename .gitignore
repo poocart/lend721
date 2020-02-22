@@ -8,6 +8,7 @@ node_modules
 
 # production
 /.openzeppelin
+/.env
 /secrets.json
 
 # misc
@@ -22,3 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 .idea
+
+# front-end client
+client/.next
+client/build

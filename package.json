@@ -3,11 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "test": "mocha --exit --recursive test"
+    "test:contracts": "mocha --exit --recursive test"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",
-    "@openzeppelin/contracts-ethereum-package": "^2.4.0"
+    "@openzeppelin/contracts-ethereum-package": "^2.4.0",
+    "dotenv": "^8.2.0"
   },
   "devDependencies": {
     "@openzeppelin/cli": "^2.7.1",
