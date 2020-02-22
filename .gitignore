@@ -27,3 +27,4 @@ yarn-error.log*
 # front-end client
 client/.next
 client/build
+client/out

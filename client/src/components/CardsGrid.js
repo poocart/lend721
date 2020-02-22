@@ -14,11 +14,11 @@ import notFoundImage from '../assets/images/mystery.png';
 
 const CardsWrapper = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: space-even;
   margin-top: 30px;
   flex-wrap: wrap;
   align-items: flex-start;
-  max-width: 800px;
+  max-width: 790px;
 `;
 
 const Card = styled.div`
@@ -26,15 +26,11 @@ const Card = styled.div`
   border: 1px solid #000;
   border-radius: 5px;
   text-align: center;
-  flex: 0 0 31%;
-  margin-bottom: 30px;
-`;
-
-const CardContent = styled.div`
-  border-radius: 5px;
+  flex: 0 0 200px;
+  margin: 0px 15px 15px;
+  padding: 15px;
   text-align: center;
   flex-wrap: wrap;
-  padding: 15px;
 `;
 
 const CardImage = styled.img`
@@ -75,15 +71,13 @@ const CardsGrid = ({
         const { image, backgroundColor } = item;
         return (
           <Card key={`${uniqueId('card_')}`} backgroundColor={backgroundColor}>
-            <CardContent>
-              <CardImage src={image || notFoundImage} />
-              <CardButton
-                inverted={invertedCardButton}
-                onClick={() => onCardButtonClick(item)}
-              >
-                {renderCardButtonTitle(item)}
-              </CardButton>
-            </CardContent>
+            <CardImage src={image || notFoundImage} />
+            <CardButton
+              inverted={invertedCardButton}
+              onClick={() => onCardButtonClick(item)}
+            >
+              {renderCardButtonTitle(item)}
+            </CardButton>
           </Card>
         );
       })}
