@@ -4,6 +4,8 @@ import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
 
 // constants
 import {
+  RESET_COLLECTIBLE_TRANSACTION,
+  SET_COLLECTIBLE_TRANSACTION,
   SET_CONTRACT_COLLECTIBLES,
   SET_OWNED_COLLECTIBLES,
 } from '../constants/collectiblesConstants';
@@ -19,6 +21,12 @@ import { isCaseInsensitiveMatch } from '../utils';
 // assets
 import erc721Abi from '../assets/abi/erc721.json';
 
+
+const isMatchingCollectible = (
+  collectible,
+  tokenAddress,
+  tokenId,
+) => collectible.tokenAddress === tokenAddress && collectible.tokenId === tokenId;
 
 export const loadCollectiblesAction = () => async (dispatch, getState) => {
   const { connectedAccount: { address } } = getState();
@@ -63,15 +71,15 @@ export const updateCollectibleStateAction = (
 ) => (dispatch, getState) => {
   const { collectibles: { owned } } = getState();
 
-  const isMatching = (collectible) => collectible.tokenAddress === tokenAddress
-    && collectible.tokenId === tokenId;
-
-  const matchingOwned = owned.some(isMatching);
-
-  if (!matchingOwned) return;
+  // check if exist
+  if (!owned.some(
+    (collectible) => isMatchingCollectible(collectible, tokenAddress, tokenId),
+  )) return;
 
   const updatedOwned = owned.reduce((updated, collectible, index) => {
-    if (isMatching(collectible)) updated[index] = { ...collectible, state };
+    if (isMatchingCollectible(collectible, tokenAddress, tokenId)) {
+      updated[index] = { ...collectible, state };
+    }
     return updated;
   }, owned);
 
@@ -80,3 +88,22 @@ export const updateCollectibleStateAction = (
     payload: updatedOwned,
   });
 };
+
+export const setCollectibleForTransactionAction = (
+  tokenAddress,
+  tokenId,
+) => (dispatch, getState) => {
+  const { collectibles: { owned, contract } } = getState();
+  const targetCollectible = [...owned, ...contract].find(
+    (collectible) => isMatchingCollectible(collectible, tokenAddress, tokenId),
+  );
+
+  if (!targetCollectible) return;
+
+  dispatch({
+    type: SET_COLLECTIBLE_TRANSACTION,
+    payload: targetCollectible,
+  });
+};
+
+export const resetCollectibleForTransactionAction = () => ({ type: RESET_COLLECTIBLE_TRANSACTION });

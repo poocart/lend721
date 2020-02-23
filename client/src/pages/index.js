@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { Loader, Flash } from 'rimble-ui';
 import isEmpty from 'lodash/isEmpty';
 import isUndefined from 'lodash/isUndefined';
-import get from 'lodash/get';
 import { isMobile } from 'react-device-detect';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -12,7 +11,7 @@ import { connect } from 'react-redux';
 import { setConnectedAccountAction } from '../actions/connectedAccountActions';
 import {
   loadCollectiblesAction,
-  updateCollectibleStateAction,
+  setCollectibleForTransactionAction,
 } from '../actions/collectiblesActions';
 
 // components
@@ -20,28 +19,13 @@ import Tabs from '../components/Tabs';
 import CardsGrid from '../components/CardsGrid';
 import ConnectAccount from '../components/ConnectAccount';
 import Emoji from '../components/Emoji';
-import Modal from '../components/Modal';
-import TransactionDetails from '../components/TransactionDetails';
+import CollectibleTransactionModal from '../components/CollectibleTransactionModal';
 
 // services
 import { connectAccount } from '../services/accounts';
-import {
-  LEND_CONTRACT_ADDRESS,
-  loadLendContract,
-} from '../services/contracts';
-
-// constants
-import {
-  APPROVED_FOR_LENDING,
-  AVAILABLE_FOR_BORROW,
-  AVAILABLE_FOR_LENDING,
-} from '../constants/collectiblesStateConstants';
 
 // utils
 import { truncateHexString } from '../utils';
-
-// assets
-import erc721Abi from '../assets/abi/erc721.json';
 
 
 const Title = styled.h1`
@@ -69,11 +53,11 @@ const Content = styled.div`
   text-align: center;
 `;
 
-const renderCards = (data, actionTitlePrefix, setModalData, inverted) => (
+const renderCards = (data, actionTitlePrefix, setCollectibleForTransaction, inverted) => (
   <CardsGrid
     data={data}
     renderCardButtonTitle={({ title }) => `${actionTitlePrefix} ${title}`}
-    onCardButtonClick={(item) => setModalData(item)}
+    onCardButtonClick={(item) => setCollectibleForTransaction(item.tokenAddress, item.tokenId)}
     invertedCardButton={inverted}
   />
 );
@@ -85,99 +69,21 @@ const renderInstructions = () => (
   </>
 );
 
-const renderModalContent = (
-  item,
-  closeModal,
-  connectedAccount,
-  setModalData,
-  updateCollectibleState,
-) => {
-  let title;
-  let subtitle;
-  let confirmTitle;
-  let onConfirm;
-
-  const connectedAccountAddress = connectedAccount.address;
-  const transactionHash = get(item, 'state.transactionHash');
-
-  switch (item.state.type) {
-    case AVAILABLE_FOR_BORROW:
-      title = `Borrow ${item.title}`;
-      subtitle = 'Allow smart contract to use specified DAI amount as collateral';
-      confirmTitle = 'Confirm Borrow';
-      break;
-    case AVAILABLE_FOR_LENDING:
-      title = `Approve usage of\n ${item.title}`;
-      subtitle = 'Allow smart contract to use selected NFT';
-      confirmTitle = 'Approve';
-      onConfirm = () => {
-        const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
-        ERC721Contract.methods
-          .approve(LEND_CONTRACT_ADDRESS, item.tokenId)
-          .send({ from: connectedAccountAddress }, (err, hash) => {
-            if (err) return;
-            const updatedState = { ...item.state, transactionHash: hash };
-            updateCollectibleState(item.tokenAddress, item.tokenId, updatedState);
-            setModalData({ ...item, state: updatedState });
-          })
-          .then(() => {
-            const updatedState = { type: APPROVED_FOR_LENDING };
-            updateCollectibleState(item.tokenAddress, item.tokenId, updatedState);
-            setModalData({ ...item, state: updatedState });
-          })
-          .catch((e) => { console.log(e); });
-      };
-      break;
-    case APPROVED_FOR_LENDING:
-      title = `Lend ${item.title}`;
-      subtitle = 'Set lend conditions and start lending your NFT';
-      confirmTitle = 'Confirm Lend';
-      break;
-    default:
-      break;
-  }
-
-  return (
-    <TransactionDetails
-      senderAddress={connectedAccountAddress}
-      transactionHash={transactionHash}
-      tokenId={item.tokenId}
-      tokenName={item.title}
-      title={title}
-      subtitle={subtitle}
-      actionConfirmTitle={confirmTitle}
-      actionCloseTitle="Close"
-      onConfirm={onConfirm}
-      onClose={closeModal}
-    />
-  );
-};
-
 const App = ({
   setConnectedAccount,
   loadCollectibles,
   collectibles,
   connectedAccount,
-  updateCollectibleState,
+  setCollectibleForTransaction,
 }) => {
   const [loadingApp, setLoadingApp] = useState(true);
   const [appError, setAppError] = useState(null);
-  const [modalData, setModalData] = useState(null);
-  const closeModal = () => setModalData(null);
-
-  const [lendContract, setLendContract] = useState(null);
 
   const tryConnectAccount = async (forceEnable) => {
     const { address, networkId } = await connectAccount(forceEnable).catch(() => ({}));
 
     setConnectedAccount(address, networkId);
     loadCollectibles();
-
-    // load contract ABI
-    if (networkId) {
-      const loadedContract = await loadLendContract(networkId).catch(() => {});
-      if (isEmpty(loadedContract)) setLendContract(loadedContract);
-    }
 
     setLoadingApp(false);
   };
@@ -192,8 +98,8 @@ const App = ({
   if (loadingApp) return <Loader style={{ marginTop: 65 }} size="40px" />;
 
   const tabs = [
-    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(collectibles.owned, 'Lend your', setModalData) },
-    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(collectibles.contract, 'Borrow this', setModalData, true) },
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(collectibles.owned, 'Lend your', setCollectibleForTransaction) },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(collectibles.contract, 'Borrow this', setCollectibleForTransaction, true) },
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
@@ -203,14 +109,6 @@ const App = ({
 
   const connectedAccountAddress = connectedAccount.address
     && truncateHexString(connectedAccount.address);
-
-  const modalContent = modalData && renderModalContent(
-    modalData,
-    closeModal,
-    connectedAccount,
-    setModalData,
-    updateCollectibleState,
-  );
 
   return (
     <Page>
@@ -237,10 +135,7 @@ const App = ({
         {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
         <Tabs marginTop={70} data={tabs} />
       </Content>
-      <Modal
-        show={!isEmpty(modalData)}
-        content={modalContent}
-      />
+      <CollectibleTransactionModal />
     </Page>
   );
 };
@@ -248,10 +143,11 @@ const App = ({
 App.propTypes = {
   setConnectedAccount: PropTypes.func,
   loadCollectibles: PropTypes.func,
-  updateCollectibleState: PropTypes.func,
+  setCollectibleForTransaction: PropTypes.func,
   collectibles: PropTypes.shape({
     owned: PropTypes.array,
     contract: PropTypes.array,
+    collectibleTransaction: PropTypes.object,
   }),
   connectedAccount: PropTypes.shape({
     address: PropTypes.string,
@@ -270,7 +166,7 @@ const mapStateToProps = ({
 const mapDispatchToProps = {
   loadCollectibles: loadCollectiblesAction,
   setConnectedAccount: setConnectedAccountAction,
-  updateCollectibleState: updateCollectibleStateAction,
+  setCollectibleForTransaction: setCollectibleForTransactionAction,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);
