@@ -19,6 +19,9 @@ const CardsWrapper = styled.div`
   flex-wrap: wrap;
   align-items: flex-start;
   max-width: 790px;
+  @media (max-width: 700px) {
+    display: block;
+  }
 `;
 
 const Card = styled.div`

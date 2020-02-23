@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Loader } from 'rimble-ui';
-import isUndefined from 'lodash/isUndefined';
+import { Loader, Flash } from 'rimble-ui';
+import isEmpty from 'lodash/isEmpty';
+import { isMobile } from 'react-device-detect';
 
 // components
 import Tabs from '../components/Tabs';
@@ -17,18 +18,27 @@ import { LEND_CONTRACT_ADDRESS, loadLendContract } from '../services/contracts';
 
 const Title = styled.h1`
   margin: 55px 0px 0px 0px;
+  @media (max-width: 700px) {
+    margin-top: 20px;
+  }
 `;
 
 const Subtitle = styled.span`
   margin: 10px 0px 0px 0px;
   font-size: 17px;
+  word-break: break-all;
 `;
 
 const Page = styled.div`
+  padding: 15px;
+`;
+
+const Content = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
+  text-align: center;
 `;
 
 const renderCards = (data, actionTitlePrefix, inverted) => (
@@ -72,12 +82,19 @@ const renderCards = (data, actionTitlePrefix, inverted) => (
 //   </Card>
 // </Modal>
 
+const renderInstructions = () => (
+  <>
+    <h2>Common sense -> Smart Contract -> When profit</h2>
+    <p>To be added.</p>
+  </>
+);
+
 const App = () => {
   const [loadingApp, setLoadingApp] = useState(true);
+  const [appError, setAppError] = useState(null);
 
-  const [networkId, setNetworkId] = useState(0);
-  const [address, setAddress] = useState(null);
-  const [connecting, setConnecting] = useState(false);
+  const [connectedNetworkId, setConnectedNetworkId] = useState(0);
+  const [connectedAddress, setConnectedAddress] = useState(null);
   // const [lendTarget, setLendTarget] = useState(null);
   // const [borrowTarget, setBorrowTarget] = useState(null);
 
@@ -85,51 +102,70 @@ const App = () => {
   const [collectiblesForBorrow, setCollectiblesForBorrow] = useState(null);
   const [lendContract, setLendContract] = useState(null);
 
-  const tabs = [
-    { title: 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your') },
-    { title: 'Borrow ERC721 from others', content: renderCards(collectiblesForBorrow, 'Borrow this', true) },
-  ];
-
   const tryConnectAccount = async (forceEnable) => {
-    const {
-      address: connectedAddress,
-      networkId: connectedNetworkId,
-    } = await connectAccount(forceEnable).catch(() => ({}));
+    const { address, networkId } = await connectAccount(forceEnable).catch(() => ({}));
+
+    if (address) setConnectedAddress(address);
+    if (networkId) setConnectedNetworkId(networkId);
+
+    // get collectibles of current account
+    let accountCollectibles = [];
+    if (address) {
+      accountCollectibles = await getCollectiblesByAddress(address)
+        .catch(() => []);
+    }
+    setOwnedCollectibles(accountCollectibles);
+
+    // get collectibles of smart contract (in borrow pool)
+    const contractCollectibles = await getCollectiblesByAddress(LEND_CONTRACT_ADDRESS)
+      .catch(() => []);
+    setCollectiblesForBorrow(contractCollectibles);
+
+    // load contract ABI
+    if (networkId) {
+      const loadedContract = await loadLendContract(networkId).catch(() => {});
+      if (isEmpty(loadedContract)) setLendContract(loadedContract);
+    }
 
     setLoadingApp(false);
-
-    if (!forceEnable && (!connectedAddress || connecting)) return;
-
-    setAddress(connectedAddress);
-    setNetworkId(connectedNetworkId);
-    getCollectiblesByAddress(connectedAddress).then(setOwnedCollectibles);
-    getCollectiblesByAddress(LEND_CONTRACT_ADDRESS).then(setCollectiblesForBorrow);
-    loadLendContract(connectedNetworkId).then(setLendContract);
-
-    setConnecting(false);
   };
 
-  const isConnected = !!networkId && address;
-
-  // check for global.window as it might be not yet ready
-  if (loadingApp && !connecting && !isUndefined(global.window)) {
-    setConnecting(true);
-    tryConnectAccount(false);
-  }
+  useEffect(() => {
+    tryConnectAccount(false).catch((e) => {
+      setLoadingApp(false);
+      setAppError(e);
+    });
+  }, []);
 
   if (loadingApp) return <Loader style={{ marginTop: 65 }} size="40px" />;
 
+  const tabs = [
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your') },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(collectiblesForBorrow, 'Borrow this', true) },
+    { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
+  ];
+
+  const isConnected = !!connectedNetworkId && connectedAddress;
+
   return (
     <Page>
-      <Title>Lend and borrow ERC-721 NFT <Emoji content="🎉" /></Title>
-      {isConnected && (
-        <>
-          <Subtitle>Connected account: <strong>{address || 'Not connected'}</strong></Subtitle>
-          <small style={{ marginTop: 15 }}><u>Note: Connected to Rinkeby testnet</u></small>
-          <Tabs marginTop={70} data={tabs} />
-        </>
-      )}
-      {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
+      <Content>
+        <Title>Lend and borrow ERC-721 NFT <Emoji content="🎉" /></Title>
+        {appError && (
+          <Flash variant="warning" style={{ marginTop: 40 }}>
+            <strong>Great Scott!</strong> Something went wrong:<br />
+            <code>{appError.toString()}</code>
+          </Flash>
+        )}
+        {isConnected && (
+          <>
+            <Subtitle>Account address: <strong>{connectedAddress || 'Not connected'}</strong></Subtitle>
+            <small style={{ marginTop: 15 }}><u>Note: Data shown from Rinkeby testnet</u></small>
+          </>
+        )}
+        {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
+        <Tabs marginTop={70} data={tabs} />
+      </Content>
     </Page>
   );
 };

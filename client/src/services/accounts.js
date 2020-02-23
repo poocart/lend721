@@ -14,7 +14,7 @@ export const connectAccount = async (forceEnable) => {
   } else if (window.web3) {
     window.web3 = new Web3(window.web3.currentProvider);
   } else {
-    return Promise.resolve();
+    return Promise.resolve({ address: null, networkId: null });
   }
 
   const accountAddress = await window.web3.eth.getAccounts().then((accounts) => accounts[0]);

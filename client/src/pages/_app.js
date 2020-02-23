@@ -20,6 +20,7 @@ class App extends NextApp {
     return (
       <>
         <Head>
+          <meta name="viewport" content="width=device-width,maximum-scale=1,initial-scale=1" />
           <title>Lend and borrow ERC-721 NFT on Ethereum | lend721.app</title>
           <link
             href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap"

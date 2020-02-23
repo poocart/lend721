@@ -24,6 +24,9 @@ const SingleTab = styled.a`
     opacity: 0.8;
     font-weight: 800;
   `}
+  @media (max-width: 700px) {
+    font-size: 14px;
+  }
 `;
 
 const renderTab = (title, tabIndex, activeTab, setTab) => (
