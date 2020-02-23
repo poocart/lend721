@@ -7,4 +7,8 @@ which handles the rest of lending process.
 
 ### Contract addresses 🏠
 - Mainnet: TBA
-- Rinkeby: 0x324C1A7193F84b97ba911471cb5Cb46b139AF698
+- Rinkeby: [0x324C1A7193F84b97ba911471cb5Cb46b139AF698](https://rinkeby.etherscan.io/address/0x324C1A7193F84b97ba911471cb5Cb46b139AF698)
+
+### Client dApp 🏹
+- Mainnet: TBA
+- Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
