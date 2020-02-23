@@ -41,7 +41,7 @@ import {
 import { truncateHexString } from '../utils';
 
 // assets
-import ERC721ABI from '../assets/abi/erc721.json';
+import erc721Abi from '../assets/abi/erc721.json';
 
 
 const Title = styled.h1`
@@ -111,7 +111,7 @@ const renderModalContent = (
       subtitle = 'Allow smart contract to use selected NFT';
       confirmTitle = 'Approve';
       onConfirm = () => {
-        const ERC721Contract = new window.web3.eth.Contract(ERC721ABI, item.tokenAddress);
+        const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
         ERC721Contract.methods
           .approve(LEND_CONTRACT_ADDRESS, item.tokenId)
           .send({ from: connectedAccountAddress }, (err, hash) => {

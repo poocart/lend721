@@ -17,7 +17,7 @@ import {
 import { isCaseInsensitiveMatch } from '../utils';
 
 // assets
-import ERC721ABI from '../assets/abi/erc721.json';
+import erc721Abi from '../assets/abi/erc721.json';
 
 
 export const loadCollectiblesAction = () => async (dispatch, getState) => {
@@ -30,7 +30,7 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
     accountCollectibles = await Promise.all(fetchedAccountCollectibles.map(async (item) => {
       let approvedAddress;
       try {
-        const ERC721Contract = new window.web3.eth.Contract(ERC721ABI, item.tokenAddress);
+        const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
         approvedAddress = await ERC721Contract.methods.getApproved(item.tokenId).call();
       } catch (e) {
         //
