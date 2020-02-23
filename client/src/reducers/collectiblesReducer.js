@@ -4,8 +4,8 @@ import {
 } from '../constants/collectiblesConstants';
 
 const initialState = {
-  owned: [],
-  contract: [],
+  owned: null,
+  contract: null,
 };
 
 const collectiblesReducer = (state = initialState, action) => {
