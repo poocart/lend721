@@ -20,6 +20,6 @@ module.exports = withImages({
     return config;
   },
   env: {
-    CONTRACT_ADDRESS: process.env.CONTRACT_ADDRESS
+    CONTRACT_ADDRESS: process.env.CONTRACT_ADDRESS,
   },
 });

@@ -13,7 +13,8 @@
     "react",
     "import",
     "jest",
-    "promise"
+    "promise",
+    "react-hooks"
   ],
   "rules": {
     "semi": ["error", "always"],
@@ -27,7 +28,10 @@
     "no-confusing-arrow": ["off"],
     "operator-linebreak": [1, "before"],
     "react/jsx-wrap-multilines": ["error", { "logical": "ignore" }],
-    "camelcase": [1, {"properties": "always", "ignoreDestructuring":  true }]
+    "camelcase": [1, {"properties": "always", "ignoreDestructuring":  true }],
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-param-reassign": [0]
   },
   "settings": {
     "import/resolver": {

@@ -7,12 +7,12 @@ const mapFromOpenSea = (data) => data.map(({
   token_id: tokenId,
   image_url: image,
   image_preview_url: preview,
-  asset_contract: { address: tokenContractAddress },
+  asset_contract: { address: tokenAddress },
 }) => ({
   title: name || 'Unnamed ERC-721',
   backgroundColor,
   image: image || preview,
-  tokenContractAddress,
+  tokenAddress,
   tokenId,
 }));
 
