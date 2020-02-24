@@ -6,8 +6,10 @@ import get from 'lodash/get';
 
 // actions
 import {
-  resetCollectibleForTransactionAction,
-  setCollectibleForTransactionAction,
+  resetCollectiblePendingTransactionAction,
+  resetCollectiblePreviewTransactionAction,
+  setCollectiblePendingTransactionAction,
+  setCollectiblePreviewTransactionAction,
   updateCollectibleDataAction,
 } from '../actions/collectiblesActions';
 
@@ -17,7 +19,7 @@ import {
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
   SET_FOR_LENDING,
-} from '../constants/collectiblesStateConstants';
+} from '../constants/collectibleTypeConstants';
 
 // services
 import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
@@ -31,15 +33,25 @@ import Modal from './Modal';
 import TransactionDetails from './TransactionDetails';
 import NumericInput from './NumericInput';
 
+// utils
+import {
+  findMatchingCollectible,
+  isCaseInsensitiveMatch,
+} from '../utils';
+
 
 const renderModalContent = (
-  item,
+  collectibles,
+  previewTransaction,
+  pendingTransaction,
   closeModal,
   connectedAccount,
-  setCollectibleForTransaction,
+  setCollectiblePreviewTransaction,
   updateCollectibleData,
   lendSettings,
   setLendSettings,
+  setCollectiblePendingTransaction,
+  resetCollectiblePendingTransaction,
 ) => {
   let title;
   let subtitle;
@@ -47,19 +59,32 @@ const renderModalContent = (
   let onConfirm;
   let inputs;
 
+  const item = findMatchingCollectible(
+    collectibles,
+    previewTransaction.tokenAddress,
+    previewTransaction.tokenId,
+  );
+
   const onTransactionResult = (
-    successfulTransactionHash,
+    transactionHash,
     tokenAddress,
     tokenId,
-    state,
-    updateTransaction,
+    updatedCollectibleData,
+    transactionCompleted,
     closeTransactionModal,
   ) => {
-    if (isEmpty(successfulTransactionHash)) return;
+    if (isEmpty(transactionHash)) return;
+    if (!transactionCompleted) {
+      setCollectiblePendingTransaction({
+        tokenAddress,
+        tokenId,
+        transactionHash,
+      });
+    }
     // update in reducer
-    updateCollectibleData(tokenAddress, tokenId, state);
-    if (updateTransaction) setCollectibleForTransaction(tokenAddress, tokenId);
+    updateCollectibleData(tokenAddress, tokenId, updatedCollectibleData);
     if (closeTransactionModal) closeModal();
+    if (transactionCompleted) resetCollectiblePendingTransaction();
   };
 
   const connectedAccountAddress = connectedAccount.address;
@@ -84,8 +109,6 @@ const renderModalContent = (
             hash,
             item.tokenAddress,
             item.tokenId,
-            { transactionHash: hash },
-            true,
           ))
           .catch(() => {});
 
@@ -94,7 +117,7 @@ const renderModalContent = (
           resultTransactionHash,
           item.tokenAddress,
           item.tokenId,
-          { type: APPROVED_FOR_LENDING, transactionHash: null },
+          { type: APPROVED_FOR_LENDING },
           true,
         );
       };
@@ -134,13 +157,18 @@ const renderModalContent = (
       onConfirm = async () => {
         const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
         const { initialWorth, lendInterest } = lendSettings;
-        const lendDuration = 1;
+        const durationMilliseconds = 1;
+        const extra = {
+          initialWorth,
+          lendInterest,
+          durationMilliseconds,
+        };
         // set for lending
         const result = await Lend721Contract.methods
           .lendForTime(
             item.tokenAddress,
             item.tokenId,
-            lendDuration,
+            durationMilliseconds,
             initialWorth,
             lendInterest,
           )
@@ -148,8 +176,6 @@ const renderModalContent = (
             hash,
             item.tokenAddress,
             item.tokenId,
-            { transactionHash: hash },
-            true,
           ))
           .catch(() => {});
 
@@ -158,7 +184,9 @@ const renderModalContent = (
           resultTransactionHash,
           item.tokenAddress,
           item.tokenId,
-          { type: SET_FOR_LENDING, transactionHash: null },
+          { type: SET_FOR_LENDING, extra },
+          true,
+          true,
         );
       };
       break;
@@ -175,8 +203,6 @@ const renderModalContent = (
             hash,
             item.tokenAddress,
             item.tokenId,
-            { transactionHash: hash },
-            true,
           ))
           .catch(() => {});
 
@@ -185,8 +211,8 @@ const renderModalContent = (
           resultTransactionHash,
           item.tokenAddress,
           item.tokenId,
-          { type: AVAILABLE_FOR_LENDING, transactionHash: null },
-          false,
+          { type: AVAILABLE_FOR_LENDING },
+          true,
           true,
         );
       };
@@ -195,10 +221,17 @@ const renderModalContent = (
       break;
   }
 
+  let pendingTransactionHash;
+  if (!isEmpty(pendingTransaction)
+    && isCaseInsensitiveMatch(pendingTransaction.tokenAddress, item.tokenAddress)
+    && isCaseInsensitiveMatch(pendingTransaction.tokenId, item.tokenId)) {
+    pendingTransactionHash = pendingTransaction.transactionHash;
+  }
+
   return (
     <TransactionDetails
       senderAddress={connectedAccountAddress}
-      transactionHash={item.transactionHash}
+      transactionHash={pendingTransactionHash}
       tokenId={item.tokenId}
       tokenName={item.title}
       inputs={inputs}
@@ -216,24 +249,30 @@ const CollectibleTransactionModal = ({
   collectibles,
   connectedAccount,
   updateCollectibleData,
-  setCollectibleForTransaction,
-  resetCollectibleForTransaction,
+  setCollectiblePreviewTransaction,
+  resetCollectiblePreviewTransaction,
+  setCollectiblePendingTransaction,
+  resetCollectiblePendingTransaction,
 }) => {
   const [lendSettings, setLendSettings] = useState({});
 
-  const modalContent = collectibles.collectibleTransaction && renderModalContent(
-    collectibles.collectibleTransaction,
-    () => resetCollectibleForTransaction(),
+  const modalContent = collectibles.previewTransaction && renderModalContent(
+    collectibles.data,
+    collectibles.previewTransaction,
+    collectibles.pendingTransaction,
+    () => resetCollectiblePreviewTransaction(),
     connectedAccount,
-    setCollectibleForTransaction,
+    setCollectiblePreviewTransaction,
     updateCollectibleData,
     lendSettings,
     setLendSettings,
+    setCollectiblePendingTransaction,
+    resetCollectiblePendingTransaction,
   );
 
   return (
     <Modal
-      show={!isEmpty(collectibles.collectibleTransaction)}
+      show={!isEmpty(collectibles.previewTransaction)}
       content={modalContent}
     />
   );
@@ -241,15 +280,19 @@ const CollectibleTransactionModal = ({
 
 CollectibleTransactionModal.propTypes = {
   collectibles: PropTypes.shape({
-    collectibleTransaction: PropTypes.object,
+    data: PropTypes.array,
+    previewTransaction: PropTypes.object,
+    pendingTransaction: PropTypes.object,
   }),
   connectedAccount: PropTypes.shape({
     address: PropTypes.string,
     networkId: PropTypes.number,
   }),
   updateCollectibleData: PropTypes.func,
-  setCollectibleForTransaction: PropTypes.func,
-  resetCollectibleForTransaction: PropTypes.func,
+  setCollectiblePreviewTransaction: PropTypes.func,
+  resetCollectiblePreviewTransaction: PropTypes.func,
+  setCollectiblePendingTransaction: PropTypes.func,
+  resetCollectiblePendingTransaction: PropTypes.func,
 };
 
 const mapStateToProps = ({
@@ -262,8 +305,10 @@ const mapStateToProps = ({
 
 const mapDispatchToProps = {
   updateCollectibleData: updateCollectibleDataAction,
-  setCollectibleForTransaction: setCollectibleForTransactionAction,
-  resetCollectibleForTransaction: resetCollectibleForTransactionAction,
+  setCollectiblePreviewTransaction: setCollectiblePreviewTransactionAction,
+  resetCollectiblePreviewTransaction: resetCollectiblePreviewTransactionAction,
+  setCollectiblePendingTransaction: setCollectiblePendingTransactionAction,
+  resetCollectiblePendingTransaction: resetCollectiblePendingTransactionAction,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(CollectibleTransactionModal);

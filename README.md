@@ -5,12 +5,13 @@
 Current stage: **alpha**
 
 ### To do before beta
-- [ ] Client dApp: show lent data
+- [x] Client dApp: show lent data
 - [ ] Client dApp: show borrowed data
 - [ ] Client dApp borrower: call DAI approve method
 - [ ] Client dApp borrower: call borrow method
 - [x] Client dApp lender: call ERC-721 approve method
 - [x] Client dApp lender: call ERC-721 lend set method
+- [ ] Show success or error messages on each transaction
 - [ ] Set duration for lendings
 - [ ] Email reminders for borrower or lender
 - [ ] Deploy Smart Contract to mainnet

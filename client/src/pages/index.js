@@ -17,7 +17,7 @@ import { connect } from 'react-redux';
 import { setConnectedAccountAction } from '../actions/connectedAccountActions';
 import {
   loadCollectiblesAction,
-  setCollectibleForTransactionAction,
+  setCollectiblePreviewTransactionAction,
 } from '../actions/collectiblesActions';
 
 // components
@@ -66,7 +66,7 @@ const Content = styled.div`
   text-align: center;
 `;
 
-const renderLent = (lent, setCollectibleForTransaction) => {
+const renderLent = (lent, setCollectiblePreviewTransaction) => {
   if (isEmpty(lent)) return null;
 
   const lentRows = lent.map(({
@@ -81,9 +81,12 @@ const renderLent = (lent, setCollectibleForTransaction) => {
       durationMilliseconds,
       borrowerAddress,
     } = extra;
-    const isBorrowed = !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
+
+    const isBorrowed = !isEmpty(borrowerAddress)
+      && !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
+
     const periodEnded = false;
-    const onCancelClick = () => setCollectibleForTransaction(tokenAddress, tokenId);
+    const onCancelClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
     return (
       <tr key={`${tokenAddress}${tokenId}`}>
         <td>{title}</td>
@@ -120,11 +123,11 @@ const renderLent = (lent, setCollectibleForTransaction) => {
   );
 };
 
-const renderCards = (data, actionTitlePrefix, setCollectibleForTransaction, inverted) => (
+const renderCards = (data, actionTitlePrefix, setCollectiblePreviewTransaction, inverted) => (
   <CardsGrid
     data={data}
     renderCardButtonTitle={({ title }) => `${actionTitlePrefix} ${title}`}
-    onCardButtonClick={(item) => setCollectibleForTransaction(item.tokenAddress, item.tokenId)}
+    onCardButtonClick={(item) => setCollectiblePreviewTransaction(item.tokenAddress, item.tokenId)}
     invertedCardButton={inverted}
   />
 );
@@ -141,7 +144,7 @@ const App = ({
   loadCollectibles,
   collectibles,
   connectedAccount,
-  setCollectibleForTransaction,
+  setCollectiblePreviewTransaction,
 }) => {
   const [loadingApp, setLoadingApp] = useState(true);
   const [appError, setAppError] = useState(null);
@@ -164,14 +167,14 @@ const App = ({
 
   if (loadingApp) return <Loader style={{ marginTop: 65 }} size="40px" />;
 
-  const ownedCollectibles = filterOwnedCollectibles(collectibles.data);
-  const lentCollectibles = filterLentCollectibles(collectibles.data);
-  const borrowCollectibles = filterCollectiblesToBorrow(collectibles.data);
+  const ownedCollectibles = collectibles.data && filterOwnedCollectibles(collectibles.data);
+  const lentCollectibles = collectibles.data && filterLentCollectibles(collectibles.data);
+  const borrowCollectibles = collectibles.data && filterCollectiblesToBorrow(collectibles.data);
 
   const tabs = [
-    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectibleForTransaction) },
-    { title: isMobile ? 'Lent' : 'Your lends', content: renderLent(lentCollectibles, setCollectibleForTransaction), hidden: isEmpty(lentCollectibles) },
-    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectibleForTransaction, true) },
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction) },
+    { title: isMobile ? 'Lent' : 'Your lends', content: renderLent(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true) },
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
@@ -215,10 +218,9 @@ const App = ({
 App.propTypes = {
   setConnectedAccount: PropTypes.func,
   loadCollectibles: PropTypes.func,
-  setCollectibleForTransaction: PropTypes.func,
+  setCollectiblePreviewTransaction: PropTypes.func,
   collectibles: PropTypes.shape({
     data: PropTypes.array,
-    collectibleTransaction: PropTypes.object,
   }),
   connectedAccount: PropTypes.shape({
     address: PropTypes.string,
@@ -237,7 +239,7 @@ const mapStateToProps = ({
 const mapDispatchToProps = {
   loadCollectibles: loadCollectiblesAction,
   setConnectedAccount: setConnectedAccountAction,
-  setCollectibleForTransaction: setCollectibleForTransactionAction,
+  setCollectiblePreviewTransaction: setCollectiblePreviewTransactionAction,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);

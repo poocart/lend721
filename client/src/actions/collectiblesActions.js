@@ -4,18 +4,19 @@ import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
 
 // constants
 import {
-  RESET_COLLECTIBLE_TRANSACTION,
-  SET_COLLECTIBLE_TRANSACTION,
+  SET_COLLECTIBLE_PREVIEW_TRANSACTION,
+  RESET_COLLECTIBLE_PREVIEW_TRANSACTION,
   ADD_COLLECTIBLES,
-  ADD_COLLECTIBLE,
   SET_COLLECTIBLES,
-} from '../constants/collectiblesConstants';
+  SET_COLLECTIBLE_PENDING_TRANSACTION,
+  RESET_COLLECTIBLE_PENDING_TRANSACTION,
+} from '../constants/collectibleConstants';
 import {
   APPROVED_FOR_LENDING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
   SET_FOR_LENDING,
-} from '../constants/collectiblesStateConstants';
+} from '../constants/collectibleTypeConstants';
 
 // utils
 import { isCaseInsensitiveMatch } from '../utils';
@@ -48,10 +49,10 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
       } catch (e) {
         //
       }
-      const stateType = isCaseInsensitiveMatch(approvedAddress, LEND_CONTRACT_ADDRESS)
+      const itemType = isCaseInsensitiveMatch(approvedAddress, LEND_CONTRACT_ADDRESS)
         ? APPROVED_FOR_LENDING
         : AVAILABLE_FOR_LENDING;
-      return { ...item, type: stateType };
+      return { ...item, type: itemType };
     }));
   }
   dispatch({
@@ -146,7 +147,7 @@ export const updateCollectibleDataAction = (
   });
 };
 
-export const setCollectibleForTransactionAction = (
+export const setCollectiblePreviewTransactionAction = (
   tokenAddress,
   tokenId,
 ) => (dispatch, getState) => {
@@ -158,9 +159,20 @@ export const setCollectibleForTransactionAction = (
   if (!targetCollectible) return;
 
   dispatch({
-    type: SET_COLLECTIBLE_TRANSACTION,
+    type: SET_COLLECTIBLE_PREVIEW_TRANSACTION,
     payload: targetCollectible,
   });
 };
 
-export const resetCollectibleForTransactionAction = () => ({ type: RESET_COLLECTIBLE_TRANSACTION });
+export const resetCollectiblePreviewTransactionAction = () => ({
+  type: RESET_COLLECTIBLE_PREVIEW_TRANSACTION,
+});
+
+export const setCollectiblePendingTransactionAction = (transaction) => ({
+  type: SET_COLLECTIBLE_PENDING_TRANSACTION,
+  payload: transaction,
+});
+
+export const resetCollectiblePendingTransactionAction = () => ({
+  type: RESET_COLLECTIBLE_PENDING_TRANSACTION,
+});

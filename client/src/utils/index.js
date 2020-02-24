@@ -6,7 +6,7 @@ import {
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
   SET_FOR_LENDING,
-} from '../constants/collectiblesStateConstants';
+} from '../constants/collectibleTypeConstants';
 
 
 export const truncateHexString = (targetString) => {
@@ -36,15 +36,24 @@ export const isCaseInsensitiveMatch = (a, b) => {
 
 export const ACCOUNT_EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-export const filterOwnedCollectibles = (collectibles) => collectibles && collectibles.filter(({ type }) => [
+export const filterOwnedCollectibles = (collectibles) => collectibles.filter(({ type }) => [
   AVAILABLE_FOR_LENDING,
   APPROVED_FOR_LENDING,
 ].includes(type));
 
-export const filterCollectiblesToBorrow = (collectibles) => collectibles && collectibles.filter(({ type }) => [
+export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(({ type }) => [
   AVAILABLE_FOR_BORROW,
 ].includes(type));
 
-export const filterLentCollectibles = (collectibles) => collectibles && collectibles.filter(({ type }) => [
+export const filterLentCollectibles = (collectibles) => collectibles.filter(({ type }) => [
   SET_FOR_LENDING,
 ].includes(type));
+
+export const findMatchingCollectible = (
+  collectibles,
+  tokenAddress,
+  tokenId,
+) => collectibles.find(
+  (collectible) => isCaseInsensitiveMatch(collectible.tokenAddress, tokenAddress)
+    && isCaseInsensitiveMatch(collectible.tokenId, tokenId),
+);

@@ -2,11 +2,14 @@ import React from 'react';
 import NextApp from 'next/app';
 import Head from 'next/head';
 import { ThemeProvider } from 'styled-components';
-import { theme } from 'rimble-ui';
+import { Loader, theme } from 'rimble-ui';
 import { applyMiddleware, createStore } from 'redux';
 import { Provider } from 'react-redux';
 import withRedux from 'next-redux-wrapper';
 import thunk from 'redux-thunk';
+import { persistStore, persistReducer } from 'redux-persist';
+import { PersistGate } from 'redux-persist/integration/react';
+import reduxPersistStorage from 'redux-persist/lib/storage';
 
 // root reducer
 import rootReducer from '../reducers/rootReducer';
@@ -37,8 +40,13 @@ const customTheme = Object.assign({}, theme, {
   },
 });
 
-
-const reduxStore = createStore(rootReducer, {}, applyMiddleware(thunk));
+const persistConfig = {
+  key: 'root',
+  storage: reduxPersistStorage,
+};
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+const reduxStore = createStore(persistedReducer, {}, applyMiddleware(thunk));
+const reduxPersistor = persistStore(reduxStore);
 
 class App extends NextApp {
   render() {
@@ -55,7 +63,12 @@ class App extends NextApp {
             />
             <style>{globalStyle}</style>
           </Head>
-          <Component {...pageProps} />
+          <PersistGate
+            loading={<Loader style={{ marginTop: 65 }} size="40px" />}
+            persistor={reduxPersistor}
+          >
+            <Component {...pageProps} />
+          </PersistGate>
         </ThemeProvider>
       </Provider>
     );
