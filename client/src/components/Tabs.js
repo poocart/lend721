@@ -45,11 +45,12 @@ const Tabs = (props) => {
   const { data, marginTop } = props;
 
   const tabContent = data[activeTab].content;
+  const filteredData = data.filter(({ hidden }) => !hidden);
 
   return (
     <>
       <TabsRow marginTop={marginTop}>
-        {data.map(({ title }, index) => renderTab(title, index, activeTab, setActiveTab))}
+        {filteredData.map(({ title }, index) => renderTab(title, index, activeTab, setActiveTab))}
       </TabsRow>
       {tabContent}
     </>
@@ -58,7 +59,8 @@ const Tabs = (props) => {
 
 const TabDataPropType = PropTypes.arrayOf(PropTypes.shape({
   title: PropTypes.string.isRequired,
-  content: PropTypes.node.isRequired,
+  content: PropTypes.node,
+  hidden: PropTypes.bool,
 }));
 
 Tabs.propTypes = {

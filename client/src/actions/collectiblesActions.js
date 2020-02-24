@@ -6,13 +6,15 @@ import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
 import {
   RESET_COLLECTIBLE_TRANSACTION,
   SET_COLLECTIBLE_TRANSACTION,
-  SET_CONTRACT_COLLECTIBLES,
-  SET_OWNED_COLLECTIBLES,
+  ADD_COLLECTIBLES,
+  ADD_COLLECTIBLE,
+  SET_COLLECTIBLES,
 } from '../constants/collectiblesConstants';
 import {
   APPROVED_FOR_LENDING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
+  SET_FOR_LENDING,
 } from '../constants/collectiblesStateConstants';
 
 // utils
@@ -20,6 +22,7 @@ import { isCaseInsensitiveMatch } from '../utils';
 
 // assets
 import erc721Abi from '../assets/abi/erc721.json';
+import lend721Abi from '../assets/abi/lend721.json';
 
 
 const isMatchingCollectible = (
@@ -29,12 +32,14 @@ const isMatchingCollectible = (
 ) => collectible.tokenAddress === tokenAddress && collectible.tokenId === tokenId;
 
 export const loadCollectiblesAction = () => async (dispatch, getState) => {
-  const { connectedAccount: { address } } = getState();
+  const { connectedAccount: { address: connectedAccountAddress } } = getState();
 
   // get collectibles of current account
   let accountCollectibles = [];
-  if (address) {
-    const fetchedAccountCollectibles = await getCollectiblesByAddress(address).catch(() => []);
+  if (connectedAccountAddress) {
+    const fetchedAccountCollectibles = await getCollectiblesByAddress(connectedAccountAddress)
+      .catch(() => []);
+
     accountCollectibles = await Promise.all(fetchedAccountCollectibles.map(async (item) => {
       let approvedAddress;
       try {
@@ -46,46 +51,98 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
       const stateType = isCaseInsensitiveMatch(approvedAddress, LEND_CONTRACT_ADDRESS)
         ? APPROVED_FOR_LENDING
         : AVAILABLE_FOR_LENDING;
-      return { ...item, state: { type: stateType } };
+      return { ...item, type: stateType };
     }));
   }
   dispatch({
-    type: SET_OWNED_COLLECTIBLES,
+    type: SET_COLLECTIBLES,
     payload: accountCollectibles,
   });
 
   // get collectibles of smart contract (in borrow pool)
-  const contractCollectibles = await getCollectiblesByAddress(LEND_CONTRACT_ADDRESS)
-    .then((items) => items.map((item) => ({ ...item, state: { type: AVAILABLE_FOR_BORROW } })))
+  const fetchedContractCollectibles = await getCollectiblesByAddress(LEND_CONTRACT_ADDRESS)
     .catch(() => []);
+
+  const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+
+  let lentCollectibles = [];
+  let contractCollectibles = [];
+
+  await Promise.all(fetchedContractCollectibles.map(async (item) => {
+    let lenderAddress;
+    let lentSettings;
+    try {
+      lentSettings = await Lend721Contract.methods
+        .lentERC721List(item.tokenAddress, item.tokenId)
+        .call();
+      ({ lender: lenderAddress } = lentSettings);
+    } catch (e) {
+      //
+    }
+    if (isCaseInsensitiveMatch(lenderAddress, connectedAccountAddress)) {
+      const {
+        initialWorth,
+        interest: lendInterest,
+        borrower: borrowerAddress,
+        durationMilliseconds,
+      } = lentSettings;
+      lentCollectibles = [
+        ...lentCollectibles,
+        {
+          ...item,
+          type: SET_FOR_LENDING,
+          extra: {
+            lendInterest,
+            initialWorth,
+            borrowerAddress,
+            durationMilliseconds,
+          },
+        },
+      ];
+    } else {
+      contractCollectibles = [
+        ...contractCollectibles,
+        {
+          ...item,
+          type: AVAILABLE_FOR_BORROW,
+        },
+      ];
+    }
+  }));
+
   dispatch({
-    type: SET_CONTRACT_COLLECTIBLES,
+    type: ADD_COLLECTIBLES,
     payload: contractCollectibles,
+  });
+
+  dispatch({
+    type: ADD_COLLECTIBLES,
+    payload: lentCollectibles,
   });
 };
 
-export const updateCollectibleStateAction = (
+export const updateCollectibleDataAction = (
   tokenAddress,
   tokenId,
-  state,
+  updatedCollectibleData,
 ) => (dispatch, getState) => {
-  const { collectibles: { owned } } = getState();
+  const { collectibles: { data: collectibles } } = getState();
 
   // check if exist
-  if (!owned.some(
+  if (!collectibles.some(
     (collectible) => isMatchingCollectible(collectible, tokenAddress, tokenId),
   )) return;
 
-  const updatedOwned = owned.reduce((updated, collectible, index) => {
+  const updatedCollectibles = collectibles.reduce((updated, collectible, index) => {
     if (isMatchingCollectible(collectible, tokenAddress, tokenId)) {
-      updated[index] = { ...collectible, state };
+      updated[index] = { ...collectible, ...updatedCollectibleData };
     }
     return updated;
-  }, owned);
+  }, collectibles);
 
   dispatch({
-    type: SET_OWNED_COLLECTIBLES,
-    payload: updatedOwned,
+    type: SET_COLLECTIBLES,
+    payload: updatedCollectibles,
   });
 };
 
@@ -93,8 +150,8 @@ export const setCollectibleForTransactionAction = (
   tokenAddress,
   tokenId,
 ) => (dispatch, getState) => {
-  const { collectibles: { owned, contract } } = getState();
-  const targetCollectible = [...owned, ...contract].find(
+  const { collectibles: { data: collectibles } } = getState();
+  const targetCollectible = collectibles.find(
     (collectible) => isMatchingCollectible(collectible, tokenAddress, tokenId),
   );
 

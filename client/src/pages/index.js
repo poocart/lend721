@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Loader, Flash } from 'rimble-ui';
+import {
+  Loader,
+  Flash,
+  Table,
+  Button,
+  Icon,
+} from 'rimble-ui';
 import isEmpty from 'lodash/isEmpty';
 import isUndefined from 'lodash/isUndefined';
 import { isMobile } from 'react-device-detect';
@@ -25,7 +31,14 @@ import CollectibleTransactionModal from '../components/CollectibleTransactionMod
 import { connectAccount } from '../services/accounts';
 
 // utils
-import { truncateHexString } from '../utils';
+import {
+  ACCOUNT_EMPTY_ADDRESS,
+  isCaseInsensitiveMatch,
+  filterCollectiblesToBorrow,
+  filterLentCollectibles,
+  filterOwnedCollectibles,
+  truncateHexString,
+} from '../utils';
 
 
 const Title = styled.h1`
@@ -52,6 +65,60 @@ const Content = styled.div`
   align-items: center;
   text-align: center;
 `;
+
+const renderLent = (lent, setCollectibleForTransaction) => {
+  if (isEmpty(lent)) return null;
+
+  const lentRows = lent.map(({
+    title,
+    tokenAddress,
+    tokenId,
+    extra,
+  }) => {
+    const {
+      initialWorth,
+      lendInterest,
+      durationMilliseconds,
+      borrowerAddress,
+    } = extra;
+    const isBorrowed = !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
+    const periodEnded = false;
+    const onCancelClick = () => setCollectibleForTransaction(tokenAddress, tokenId);
+    return (
+      <tr key={`${tokenAddress}${tokenId}`}>
+        <td>{title}</td>
+        <td>{initialWorth} DAI</td>
+        <td>{lendInterest}%</td>
+        <td>{durationMilliseconds}</td>
+        <td>{isBorrowed ? `Borrowed by ${borrowerAddress}` : 'No'}</td>
+        <td>
+          {!isBorrowed && (
+            <Button.Outline size="small" onClick={onCancelClick}>
+              <Icon color="primary" name="Close" size="1em" mr={1} /> Cancel Lending
+            </Button.Outline>
+          )}
+          {isBorrowed && periodEnded && 'Withdraw borrowers collateral'}
+        </td>
+      </tr>
+    );
+  });
+
+  return (
+    <Table style={{ marginTop: 40 }}>
+      <thead>
+        <tr>
+          <th>Nifty</th>
+          <th>Initial worth</th>
+          <th>Interest</th>
+          <th>Lending period</th>
+          <th>Borrowed</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>{lentRows}</tbody>
+    </Table>
+  );
+};
 
 const renderCards = (data, actionTitlePrefix, setCollectibleForTransaction, inverted) => (
   <CardsGrid
@@ -97,9 +164,14 @@ const App = ({
 
   if (loadingApp) return <Loader style={{ marginTop: 65 }} size="40px" />;
 
+  const ownedCollectibles = filterOwnedCollectibles(collectibles.data);
+  const lentCollectibles = filterLentCollectibles(collectibles.data);
+  const borrowCollectibles = filterCollectiblesToBorrow(collectibles.data);
+
   const tabs = [
-    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(collectibles.owned, 'Lend your', setCollectibleForTransaction) },
-    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(collectibles.contract, 'Borrow this', setCollectibleForTransaction, true) },
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectibleForTransaction) },
+    { title: isMobile ? 'Lent' : 'Your lends', content: renderLent(lentCollectibles, setCollectibleForTransaction), hidden: isEmpty(lentCollectibles) },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectibleForTransaction, true) },
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
@@ -145,8 +217,7 @@ App.propTypes = {
   loadCollectibles: PropTypes.func,
   setCollectibleForTransaction: PropTypes.func,
   collectibles: PropTypes.shape({
-    owned: PropTypes.array,
-    contract: PropTypes.array,
+    data: PropTypes.array,
     collectibleTransaction: PropTypes.object,
   }),
   connectedAccount: PropTypes.shape({

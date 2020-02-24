@@ -21,6 +21,9 @@ const globalStyle = `
     justify-content: center;
     align-items: center;
   }
+  input, textarea {
+    font-family: 'Ubuntu', sans-serif;
+  }
 `;
 
 const customTheme = Object.assign({}, theme, {

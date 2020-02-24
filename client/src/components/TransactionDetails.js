@@ -61,7 +61,7 @@ const renderAddressRow = (title, address, url) => (
   </Flex>
 );
 
-const renderTextRow = (title, value) => (
+const renderTextRow = (title, value, key) => (
   <Flex
     justifyContent="space-between"
     bg="near-white"
@@ -70,6 +70,7 @@ const renderTextRow = (title, value) => (
     flexDirection={['column', 'row']}
     borderBottom="1px solid gray"
     borderColor="moon-gray"
+    key={key}
   >
     <Text color="near-black" fontWeight="bold" style={{ flexBasis: '50%' }}>
       {title}
@@ -90,6 +91,7 @@ const TransactionDetails = ({
   actionCloseTitle,
   onConfirm,
   onClose,
+  inputs,
 }) => (
   <Card borderRadius={1} p={0}>
     <Flex
@@ -159,8 +161,9 @@ const TransactionDetails = ({
             </Flex>
           )}
           {renderAddressRow('Your account', senderAddress, `https://rinkeby.etherscan.io/address/${senderAddress}`)}
-          {tokenName && renderTextRow('Token name', tokenName)}
-          {tokenId && renderTextRow('Token ID', tokenId)}
+          {tokenName && renderTextRow('Token name', tokenName, 'tokenName')}
+          {tokenId && renderTextRow('Token ID', tokenId, 'tokenId')}
+          {inputs && inputs.map((inputRow) => renderTextRow(inputRow.title, inputRow.input, inputRow.key))}
         </Flex>
       </Flex>
     </Box>
@@ -177,6 +180,12 @@ const TransactionDetails = ({
   </Card>
 );
 
+const InputPropType = PropTypes.shape({
+  title: PropTypes.string.isRequired,
+  input: PropTypes.node.isRequired,
+  key: PropTypes.node.isRequired,
+});
+
 TransactionDetails.propTypes = {
   title: PropTypes.string.isRequired,
   subtitle: PropTypes.string,
@@ -189,6 +198,7 @@ TransactionDetails.propTypes = {
   tokenId: PropTypes.string,
   onClose: PropTypes.func,
   onConfirm: PropTypes.func,
+  inputs: PropTypes.arrayOf(InputPropType),
 };
 
 export default TransactionDetails;
