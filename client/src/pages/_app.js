@@ -10,6 +10,7 @@ import thunk from 'redux-thunk';
 import { persistStore, persistReducer } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
 import reduxPersistStorage from 'redux-persist/lib/storage';
+import hardSet from 'redux-persist/lib/stateReconciler/hardSet'
 
 // root reducer
 import rootReducer from '../reducers/rootReducer';
@@ -43,6 +44,8 @@ const customTheme = Object.assign({}, theme, {
 const persistConfig = {
   key: 'root',
   storage: reduxPersistStorage,
+  // whitelist: ['collectibles'],
+  // stateReconciler: hardSet,
 };
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 const reduxStore = createStore(persistedReducer, {}, applyMiddleware(thunk));
