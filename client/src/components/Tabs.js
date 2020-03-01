@@ -29,10 +29,10 @@ const SingleTab = styled.a`
   }
 `;
 
-const renderTab = (title, tabIndex, activeTab, setTab) => (
+const renderTab = (title, tabIndex, activeTab, setActiveTab) => (
   <SingleTab
     active={activeTab === tabIndex}
-    onClick={() => setTab(tabIndex)}
+    onClick={() => setActiveTab(tabIndex)}
     key={tabIndex}
   >
     {title}
@@ -45,12 +45,15 @@ const Tabs = (props) => {
   const { data, marginTop } = props;
 
   const tabContent = data[activeTab].content;
-  const filteredData = data.filter(({ hidden }) => !hidden);
+  const renderTabs = data.map(({
+    title,
+    hidden,
+  }, index) => !hidden && renderTab(title, index, activeTab, setActiveTab));
 
   return (
     <>
       <TabsRow marginTop={marginTop}>
-        {filteredData.map(({ title }, index) => renderTab(title, index, activeTab, setActiveTab))}
+        {renderTabs}
       </TabsRow>
       {tabContent}
     </>

@@ -178,7 +178,8 @@ const App = ({
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
-  const isConnected = !isEmpty(connectedAccount);
+  const isConnected = !isEmpty(connectedAccount.address);
+  const isConnectedRinkeby = connectedAccount.networkId === 4;
 
   const unsupportedBrowser = !global.window || isUndefined(window.web3);
 
@@ -199,6 +200,12 @@ const App = ({
           <Flash variant="warning" style={{ marginTop: 40 }}>
             <strong>Future is near!</strong>
             &nbsp;Seems like you are on browser that does not support web3.<br />
+          </Flash>
+        )}
+        {!isConnectedRinkeby && (
+          <Flash variant="warning" style={{ marginTop: 40, marginBottom: 20 }}>
+            <strong>We&apos;re testing!</strong>
+            &nbsp;Seems like you are connected, but not on Rinkeby.<br />
           </Flash>
         )}
         {isConnected && (
