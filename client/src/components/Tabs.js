@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import PropTypes from 'prop-types';
 
@@ -15,9 +15,9 @@ const TabsRow = styled.div`
 
 const SingleTab = styled.a`
   background: #3D0158;
-  padding: 15px 40px;
+  padding: 15px 25px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 14px;
   &, &:visited, &:hover { color: #fff; }
   ${({ disabled }) => disabled ? 'opacity: 0.5;' : '&:hover { opacity: 0.8; }'}
   ${({ active, disabled }) => active && !disabled && `
@@ -39,10 +39,16 @@ const renderTab = (title, tabIndex, activeTab, setActiveTab) => (
   </SingleTab>
 );
 
-const Tabs = (props) => {
-  const [activeTab, setActiveTab] = useState(0);
+const Tabs = ({
+  data,
+  marginTop,
+  defaultActiveTabIndex,
+}) => {
+  const [activeTab, setActiveTab] = useState(defaultActiveTabIndex || 0);
 
-  const { data, marginTop } = props;
+  useEffect(() => {
+    if (data[activeTab].hidden) setActiveTab(0);
+  }, [data]);
 
   const tabContent = data[activeTab].content;
   const renderTabs = data.map(({
@@ -69,6 +75,7 @@ const TabDataPropType = PropTypes.arrayOf(PropTypes.shape({
 Tabs.propTypes = {
   data: TabDataPropType.isRequired,
   marginTop: PropTypes.number,
+  defaultActiveTabIndex: PropTypes.number,
 };
 
 export default Tabs;

@@ -19,8 +19,11 @@ import {
 import {
   APPROVED_FOR_BORROWING,
   APPROVED_FOR_LENDING,
+  APPROVED_FOR_STOP_BORROWING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
+  LENT_AND_NOT_OWNED,
+  SET_FOR_BORROWING,
   SET_FOR_LENDING,
 } from '../constants/collectibleTypeConstants';
 
@@ -76,7 +79,8 @@ const renderModalContent = (
   let confirmDisabled;
   let modalData;
   let collateralAmount;
-  let errorMessage;
+  let infoMessage;
+  let warningMessage;
 
   const item = findMatchingCollectible(
     collectibles,
@@ -119,7 +123,7 @@ const renderModalContent = (
       collateralAmount = item.extra.initialWorth + item.extra.earningGoal;
       confirmTitle = `Allow usage of ${collateralAmount} DAI`;
       if (!connectedAccount.balance || connectedAccount.balance < collateralAmount) {
-        errorMessage = 'Not enough DAI balance.';
+        warningMessage = 'Not enough DAI balance.';
         confirmDisabled = true;
       }
       modalData = [
@@ -322,6 +326,48 @@ const renderModalContent = (
         || lendSettings.duration <= 0
         || lendSettings.earningGoal <= 0;
       break;
+    case APPROVED_FOR_BORROWING:
+      title = `Start borrowing ${item.title}`;
+      subtitle = 'Transfer selected ERC-721 token from lend Smart Contract to your wallet while locking previously approved collateral in DAI';
+      confirmTitle = 'Start Borrowing';
+      infoMessage = 'Friendly reminder: Make sure you stop borrowing before deadline ends or you might lose your collateral!';
+      modalData = [
+        {
+          title: 'Max. lending duration',
+          key: 'duration',
+          render: (
+            <NumericInput
+              defaultValue={formatLendDuration(item.extra.durationHours)}
+              inputWidth={35}
+              ticker={getLendDurationTitle(item.extra.durationHours)}
+              disabled
+              textRight
+            />
+          ),
+        },
+      ];
+      onConfirm = async () => {
+        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const result = await Lend721Contract.methods
+          .startBorrowing(item.tokenAddress, item.tokenId)
+          .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
+            hash,
+            item.tokenAddress,
+            item.tokenId,
+          ))
+          .catch(() => {});
+
+        const resultTransactionHash = get(result, 'transactionHash');
+        onTransactionResult(
+          resultTransactionHash,
+          item.tokenAddress,
+          item.tokenId,
+          { type: SET_FOR_BORROWING },
+          true,
+          true,
+        );
+      };
+      break;
     case SET_FOR_LENDING:
       title = `Cancel lend of ${item.title}`;
       subtitle = 'Cancel lending and get back your NFT';
@@ -330,7 +376,7 @@ const renderModalContent = (
         const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
 
         const result = await Lend721Contract.methods
-          .cancelLending(item.tokenAddress, item.tokenId)
+          .removeFromLending(item.tokenAddress, item.tokenId)
           .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
             hash,
             item.tokenAddress,
@@ -344,6 +390,125 @@ const renderModalContent = (
           item.tokenAddress,
           item.tokenId,
           { type: AVAILABLE_FOR_LENDING },
+          true,
+          true,
+        );
+      };
+      break;
+    case SET_FOR_BORROWING:
+      title = `Allow transfer ${item.title}`;
+      subtitle = 'Allow lend Smart Contract to transfer ERC-721 back to it';
+      confirmTitle = 'Allow Transfer';
+      onConfirm = async () => {
+        const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
+
+        // set for approval
+        const result = await ERC721Contract.methods
+          .approve(LEND_CONTRACT_ADDRESS, item.tokenId)
+          .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
+            hash,
+            item.tokenAddress,
+            item.tokenId,
+          ))
+          .catch(() => {});
+
+        const resultTransactionHash = get(result, 'transactionHash');
+        onTransactionResult(
+          resultTransactionHash,
+          item.tokenAddress,
+          item.tokenId,
+          { type: APPROVED_FOR_STOP_BORROWING },
+          true,
+        );
+      };
+      break;
+    case APPROVED_FOR_STOP_BORROWING:
+      title = `Stop borrowing ${item.title}`;
+      subtitle = 'Stop borrowing selected ERC-721 and get your collateral of token\'s initial worth back';
+      confirmTitle = 'Stop Borrowing';
+      modalData = [
+        {
+          title: 'You will get back',
+          key: 'initialWorth',
+          render: (
+            <NumericInput
+              defaultValue={item.extra.initialWorth}
+              inputWidth={70}
+              ticker="DAI"
+              disabled
+              textRight
+            />
+          ),
+        },
+      ];
+      onConfirm = async () => {
+        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+
+        // set for approval
+        const result = await Lend721Contract.methods
+          .stopBorrowing(item.tokenAddress, item.tokenId)
+          .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
+            hash,
+            item.tokenAddress,
+            item.tokenId,
+          ))
+          .catch(() => {});
+
+        const resultTransactionHash = get(result, 'transactionHash');
+        onTransactionResult(
+          resultTransactionHash,
+          item.tokenAddress,
+          item.tokenId,
+          { type: AVAILABLE_FOR_BORROW },
+          true,
+          true,
+        );
+      };
+      break;
+    case LENT_AND_NOT_OWNED:
+      title = `Dismiss ownership of ${item.title}`;
+      subtitle = 'Stop lending selected ERC-721 and refuse your ownership to it by taking borrowers collateral before he gave you your ERC-721 back';
+      confirmTitle = 'Claim Borrower\'s Collateral';
+      warningMessage = 'After this you will not be able to get back your ERC-721 token as you\'re taking borrowers collateral.';
+      modalData = [
+        {
+          title: 'You will lose',
+          key: 'erc721',
+          render: <span>{item.title} {item.tokenId}</span>,
+        },
+        {
+          title: 'You will get',
+          key: 'collateral',
+          render: (
+            <NumericInput
+              defaultValue={item.extra.initialWorth + item.extra.earningGoal}
+              inputWidth={70}
+              ticker="DAI"
+              disabled
+              textRight
+            />
+          ),
+        },
+      ];
+      onConfirm = async () => {
+        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+
+        // set for approval
+        const result = await Lend721Contract.methods
+          .claimBorrowerCollateral(item.tokenAddress, item.tokenId)
+          .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
+            hash,
+            item.tokenAddress,
+            item.tokenId,
+          ))
+          .catch(() => {});
+
+        const resultTransactionHash = get(result, 'transactionHash');
+        onTransactionResult(
+          resultTransactionHash,
+          item.tokenAddress,
+          item.tokenId,
+          { type: null },
           true,
           true,
         );
@@ -367,7 +532,8 @@ const renderModalContent = (
       onConfirm={onConfirm}
       confirmDisabled={confirmDisabled}
       onClose={closeModal}
-      errorMessage={errorMessage}
+      warningMessage={warningMessage}
+      infoMessage={infoMessage}
     />
   );
 };

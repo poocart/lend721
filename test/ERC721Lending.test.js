@@ -118,7 +118,7 @@ describe('ERC721Lending', () => {
     });
   });
 
-  describe('cancelLending()', () => {
+  describe('removeFromLending()', () => {
     beforeEach(async () => {
       await successfullyLendToken();
     });
@@ -126,7 +126,7 @@ describe('ERC721Lending', () => {
     it('should let cancel lending and return token', async () => {
       const ownerOfToken = await erc721.ownerOf(lendTokenId);
       const result = await lendingContract
-        .cancelLending(erc721.address, lendTokenId, { from: lender })
+        .removeFromLending(erc721.address, lendTokenId, { from: lender })
         .catch((error) => error);
       const ownerOfTokenAfterCancel = await erc721.ownerOf(lendTokenId);
       const approvedAddressAfterCancel = await erc721.getApproved(lendTokenId);

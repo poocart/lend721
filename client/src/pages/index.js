@@ -12,6 +12,7 @@ import isUndefined from 'lodash/isUndefined';
 import { isMobile } from 'react-device-detect';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
+import moment from 'moment';
 
 // actions
 import { setConnectedAccountAction } from '../actions/connectedAccountActions';
@@ -40,6 +41,7 @@ import {
   isPendingCollectibleTransaction,
   formatLendDuration,
   getLendDurationTitle,
+  filterBorrowedCollectibles,
 } from '../utils';
 
 // assets
@@ -71,10 +73,10 @@ const Content = styled.div`
 const CardLoadingWrapper = styled.div`
 `;
 
-const renderLent = (lent, setCollectiblePreviewTransaction) => {
-  if (isEmpty(lent)) return null;
+const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowersTable) => {
+  if (isEmpty(data)) return null;
 
-  const lentRows = lent.map(({
+  const collectibleRows = data.map(({
     title,
     tokenAddress,
     tokenId,
@@ -84,30 +86,66 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
       initialWorth,
       earningGoal,
       durationHours,
+      borrowedAtTimestamp,
       borrowerAddress,
+      lenderAddress,
     } = extra;
 
     const isBorrowed = !isEmpty(borrowerAddress)
       && !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
 
-    const durationEnded = false;
-    const onCancelClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
+    const onCancelLendClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
+    const onClaimCollateralClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
+    const onStopBorrowingClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
+
     const duration = formatLendDuration(durationHours);
     const durationType = getLendDurationTitle(durationHours);
+    const borrowingDeadlineDate = !!borrowedAtTimestamp
+      && durationHours
+      && moment(+borrowedAtTimestamp * 1000).add(durationHours, 'h');
+    const durationEnded = borrowingDeadlineDate
+      && borrowingDeadlineDate.isAfter('now');
+
     return (
       <tr key={`${tokenAddress}${tokenId}`}>
         <td>{title}</td>
-        <td>{duration} {durationType}</td>
-        <td>{earningGoal} DAI</td>
-        <td>{initialWorth} DAI</td>
-        <td>{isBorrowed ? `Borrowed by ${borrowerAddress}` : 'No'}</td>
+        {!isBorrowersTable && <td>{duration} {durationType}</td>}
+        {isBorrowersTable && <td>{borrowingDeadlineDate.format('YYYY-MM-DD [at] HH:mm')}</td>}
+        {!isBorrowersTable && <td>{earningGoal} DAI</td>}
+        {!isBorrowersTable && <td>{initialWorth} DAI</td>}
         <td>
-          {!isBorrowed && (
-            <Button.Outline size="small" onClick={onCancelClick}>
+          {!isBorrowersTable && (isBorrowed ? `Borrowed by ${truncateHexString(borrowerAddress)}` : 'No')}
+          {isBorrowersTable && `Borrowed from ${truncateHexString(lenderAddress)}`}
+        </td>
+        <td>
+          {!isBorrowersTable && !isBorrowed && (
+            <Button.Outline size="small" onClick={onCancelLendClick}>
               <Icon color="primary" name="Close" size="1em" mr={1} /> Cancel Lending
             </Button.Outline>
           )}
-          {isBorrowed && durationEnded && 'Withdraw borrowers collateral'}
+          {!isBorrowersTable && isBorrowed && (
+            <>
+              {!durationEnded && (
+                <Flash mt={2} mb={2} variant="info">
+                  <small>
+                    You will be able to claim borrower&apos;s collateral
+                    after {borrowingDeadlineDate.format('YYYY-MM-DD [at] HH:mm')}&nbsp;
+                    if borrower won&apos;t return your ERC-721.
+                  </small>
+                </Flash>
+              )}
+              {durationEnded && (
+                <Button.Outline size="small" onClick={onClaimCollateralClick}>
+                  <Icon color="primary" name="Close" size="1em" mr={1} /> Claim Borrower&apos;s Collateral
+                </Button.Outline>
+              )}
+            </>
+          )}
+          {isBorrowersTable && (
+            <Button.Outline size="small" onClick={onStopBorrowingClick}>
+              <Icon color="primary" name="Close" size="1em" mr={1} /> Stop Borrowing
+            </Button.Outline>
+          )}
         </td>
       </tr>
     );
@@ -118,14 +156,15 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
       <thead>
         <tr>
           <th>ERC-721 nifty</th>
-          <th>Max. lending duration</th>
-          <th>Earning goal for duration</th>
-          <th>Initial worth</th>
+          {!isBorrowersTable && <th>Max. lending duration</th>}
+          {isBorrowersTable && <th>Max. lending until</th>}
+          {!isBorrowersTable && <th>Earning goal for duration</th>}
+          {!isBorrowersTable && <th>Initial worth</th>}
           <th>Borrowed</th>
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>{lentRows}</tbody>
+      <tbody>{collectibleRows}</tbody>
     </Table>
   );
 };
@@ -203,17 +242,21 @@ const App = ({
 
   const ownedCollectibles = collectibles.data && filterOwnedCollectibles(collectibles.data);
   const lentCollectibles = collectibles.data && filterLentCollectibles(collectibles.data);
+  const borrowedCollectibles = collectibles.data && filterBorrowedCollectibles(collectibles.data);
   const borrowCollectibles = collectibles.data && filterCollectiblesToBorrow(collectibles.data);
 
   const tabs = [
     { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction, false, collectibles.pendingTransaction) },
-    { title: isMobile ? 'Lent' : 'Your lends', content: renderLent(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
+    { title: isMobile ? 'Lent' : 'Your lends', content: renderSettingsTable(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
+    { title: isMobile ? 'Borrowed' : 'Your borrows', content: renderSettingsTable(borrowedCollectibles, setCollectiblePreviewTransaction, true), hidden: isEmpty(borrowedCollectibles) },
     { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction) },
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
   const isConnected = !isEmpty(connectedAccount.address);
   const isConnectedRinkeby = connectedAccount.networkId === 4;
+
+  const defaultActiveTabIndex = isConnected ? 0 : 3;
 
   const unsupportedBrowser = !global.window || isUndefined(window.web3);
 
@@ -249,7 +292,7 @@ const App = ({
           </>
         )}
         {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
-        <Tabs marginTop={70} data={tabs} />
+        <Tabs marginTop={40} defaultActiveTabIndex={defaultActiveTabIndex} data={tabs} />
       </Content>
       <CollectibleTransactionModal />
     </Page>

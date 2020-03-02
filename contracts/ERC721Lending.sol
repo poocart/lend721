@@ -5,6 +5,8 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.so
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/IERC721.sol";
 
 contract ERC721Lending is Initializable {
+  address public acceptedPayTokenAddress;
+
   struct ERC721ForLend {
     uint256 durationHours;
     uint256 initialWorth;
@@ -13,9 +15,14 @@ contract ERC721Lending is Initializable {
     address lender;
     address borrower;
   }
-
-  address public acceptedPayTokenAddress;
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
+
+  struct ERC721TokenEntry {
+    address lenderAddress;
+    address tokenAddress;
+    uint256 tokenId;
+  }
+  ERC721TokenEntry[] public lendersWithTokens;
 
   function initialize(address tokenAddress) initializer public {
     acceptedPayTokenAddress = tokenAddress;
@@ -30,6 +37,7 @@ contract ERC721Lending is Initializable {
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
     lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0));
+    lendersWithTokens.push(ERC721TokenEntry(msg.sender, tokenAddress, tokenId));
   }
 
   function startBorrowing(address tokenAddress, uint256 tokenId) public {
@@ -49,7 +57,7 @@ contract ERC721Lending is Initializable {
 
   function stopBorrowing(address tokenAddress, uint256 tokenId) public {
     address _borrower = lentERC721List[tokenAddress][tokenId].borrower;
-    require(_borrower == msg.sender, 'Borrowing: Can be stopped only by borrower');
+    require(_borrower == msg.sender, 'Borrowing: Can be stopped only by active borrower');
     require(IERC721(tokenAddress).getApproved(tokenId) == address(this), 'Borrowing: Token transfer needs to be approved');
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
@@ -79,11 +87,21 @@ contract ERC721Lending is Initializable {
     return hoursPassed > durationHours;
   }
 
-  function cancelLending(address tokenAddress, uint256 tokenId) public {
+  function removeFromLending(address tokenAddress, uint256 tokenId) public {
     require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot cancel if in lend');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Lending: Cannot cancel if not owned');
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0)); // reset
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0)); // reset lend mappings
+
+    // reset lenders to sent token mapping, swap with last element to fill the gap
+    uint totalCount = lendersWithTokens.length;
+    for (uint i = 0; i<totalCount; i++) {
+      ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
+      if (tokenEntry.lenderAddress == msg.sender && tokenEntry.tokenAddress == tokenAddress && tokenEntry.tokenId == tokenId) {
+        lendersWithTokens[i] = lendersWithTokens[totalCount-1]; // insert last from array
+      }
+    }
+    lendersWithTokens.length--;
   }
 
   function claimBorrowerCollateral(address tokenAddress, uint256 tokenId) public {
@@ -92,8 +110,11 @@ contract ERC721Lending is Initializable {
     require(isDurationExpired(_borrowedAtTimestamp, _durationHours), 'Claim: Cannot claim before lend expired');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Claim: Cannot claim not owned lend');
 
+    // reset
+    lentERC721List[tokenAddress][tokenId].borrower = address(0);
+    lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
+
     uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0)); // reset
     IERC20(acceptedPayTokenAddress).transferFrom(address(this), msg.sender, _collateralSum);
   }
 }

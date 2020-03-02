@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// utils
+import { pause } from '../utils';
+
 
 const mapFromOpenSea = (data) => data.map(({
   name,
@@ -16,7 +19,7 @@ const mapFromOpenSea = (data) => data.map(({
   tokenId,
 }));
 
-export const getCollectiblesByAddress = (address) => {
+export const getCollectiblesByAddress = (address, attempt) => {
   const url = `https://rinkeby-api.opensea.io/api/v1/assets/?owner=${address}&exclude_currencies=true&order_by=listing_date&order_direction=asc`;
   return axios.get(url, {
     timeout: 5000,
@@ -28,5 +31,28 @@ export const getCollectiblesByAddress = (address) => {
   })
     .then(({ data: { assets: collectibles = [] } }) => collectibles)
     .then(mapFromOpenSea)
-    .catch(() => []);
+    .catch(async () => {
+      if (attempt === 5) return [];
+      await pause(attempt);
+      return getCollectiblesByAddress(address, attempt || 2);
+    });
+};
+
+export const getCollectibleByTokenData = (tokenAddress, tokenId, attempt) => {
+  const url = `https://rinkeby-api.opensea.io/api/v1/asset/${tokenAddress}/${tokenId}`;
+  return axios.get(url, {
+    timeout: 5000,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-API-KEY': 'af952dd5eb0940a9bfc68a1a9ecec4a6',
+    },
+  })
+    .then(({ data: asset }) => mapFromOpenSea([asset]))
+    .then((items) => items[0])
+    .catch(async () => {
+      if (attempt === 5) return [];
+      await pause(attempt);
+      return getCollectibleByTokenData(tokenAddress, tokenId, attempt || 2);
+    });
 };

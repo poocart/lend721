@@ -6,8 +6,11 @@ import isEmpty from 'lodash/isEmpty';
 import {
   APPROVED_FOR_BORROWING,
   APPROVED_FOR_LENDING,
+  APPROVED_FOR_STOP_BORROWING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
+  LENT_AND_NOT_OWNED,
+  SET_FOR_BORROWING,
   SET_FOR_LENDING,
 } from '../constants/collectibleTypeConstants';
 
@@ -51,16 +54,24 @@ export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(
 
 export const filterLentCollectibles = (collectibles) => collectibles.filter(({ type }) => [
   SET_FOR_LENDING,
+  LENT_AND_NOT_OWNED,
+].includes(type));
+
+export const filterBorrowedCollectibles = (collectibles) => collectibles.filter(({ type }) => [
+  SET_FOR_BORROWING,
+  APPROVED_FOR_STOP_BORROWING,
 ].includes(type));
 
 export const findMatchingCollectible = (
   collectibles,
   tokenAddress,
   tokenId,
+  itemType,
 ) => collectibles.find((
   collectible,
 ) => isCaseInsensitiveMatch(collectible.tokenAddress, tokenAddress)
-    && isCaseInsensitiveMatch(collectible.tokenId, tokenId));
+    && isCaseInsensitiveMatch(collectible.tokenId, tokenId)
+    && (!itemType || itemType === collectible.type));
 
 export const formatTokenAmount = (value) => ethersUtils.parseUnits(value.toString(), 18);
 
@@ -81,3 +92,7 @@ export const formatLendDuration = (
 export const getLendDurationTitle = (
   duration,
 ) => duration >= 24 ? 'day(s)' : 'hour(s)';
+
+export const pause = (
+  multiplier,
+) => new Promise(resolve => setTimeout(resolve, (multiplier || 1) * 1000));

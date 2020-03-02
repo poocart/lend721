@@ -95,7 +95,8 @@ const TransactionDetails = ({
   onClose,
   data,
   confirmDisabled,
-  errorMessage,
+  warningMessage,
+  infoMessage,
 }) => (
   <Card borderRadius={1} p={0}>
     <Flex
@@ -169,7 +170,8 @@ const TransactionDetails = ({
           {tokenId && renderTextRow('Token ID', tokenId, 'tokenId')}
           {data && data.map((row) => renderTextRow(row.title, row.render, row.key))}
         </Flex>
-        {!isEmpty(errorMessage) && <Flash variant="warning">{errorMessage}</Flash>}
+        {!isEmpty(warningMessage) && <Flash variant="warning">{warningMessage}</Flash>}
+        {!isEmpty(infoMessage) && <Flash variant="info">{infoMessage}</Flash>}
       </Flex>
     </Box>
     <Flex
@@ -213,7 +215,8 @@ TransactionDetails.propTypes = {
   onConfirm: PropTypes.func,
   data: PropTypes.arrayOf(DataPropType),
   confirmDisabled: PropTypes.bool,
-  errorMessage: PropTypes.string,
+  warningMessage: PropTypes.string,
+  infoMessage: PropTypes.string,
 };
 
 export default TransactionDetails;

@@ -6,13 +6,15 @@ Current stage: **alpha**
 
 ### To do before beta
 - [x] Client dApp: show lent data
-- [ ] Client dApp: show borrowed data
+- [x] Client dApp: show borrowed data
 - [x] Client dApp borrower: call DAI approve method
 - [x] Client dApp borrower: call borrow method
 - [x] Client dApp lender: call ERC-721 approve method
 - [x] Client dApp lender: call ERC-721 lend set method
-- [ ] Show success or error messages on each transaction
 - [x] Set duration for lendings
+- [ ] Put lenders addresses with lended tokens somwehere outside of smart contract (UX improvement)
+- [ ] Show message when collateral was already taken on expired lend
+- [ ] Show success or error messages on each transaction
 - [ ] Email reminders for borrower or lender
 - [ ] Deploy Smart Contract to mainnet
 - [ ] Verify Smart Contract in mainnet Etherscan
