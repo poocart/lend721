@@ -114,7 +114,17 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].borrower = address(0);
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
 
+    // reset lenders to sent token mapping, swap with last element to fill the gap
+    uint totalCount = lendersWithTokens.length;
+    for (uint i = 0; i<totalCount; i++) {
+      ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
+      if (tokenEntry.lenderAddress == msg.sender && tokenEntry.tokenAddress == tokenAddress && tokenEntry.tokenId == tokenId) {
+        lendersWithTokens[i] = lendersWithTokens[totalCount-1]; // insert last from array
+      }
+    }
+    lendersWithTokens.length--;
+
     uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
-    IERC20(acceptedPayTokenAddress).transferFrom(address(this), msg.sender, _collateralSum);
+    IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
   }
 }

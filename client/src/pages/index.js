@@ -100,11 +100,13 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
 
     const duration = formatLendDuration(durationHours);
     const durationType = getLendDurationTitle(durationHours);
+
     const borrowingDeadlineDate = !!borrowedAtTimestamp
       && durationHours
       && moment(+borrowedAtTimestamp * 1000).add(durationHours, 'h');
-    const durationEnded = borrowingDeadlineDate
-      && borrowingDeadlineDate.isAfter('now');
+
+    const deadlinePassed = borrowingDeadlineDate
+      && borrowingDeadlineDate.isBefore(moment());
 
     return (
       <tr key={`${tokenAddress}${tokenId}`}>
@@ -125,7 +127,7 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
           )}
           {!isBorrowersTable && isBorrowed && (
             <>
-              {!durationEnded && (
+              {!deadlinePassed && (
                 <Flash mt={2} mb={2} variant="info">
                   <small>
                     You will be able to claim borrower&apos;s collateral
@@ -134,7 +136,7 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
                   </small>
                 </Flash>
               )}
-              {durationEnded && (
+              {deadlinePassed && (
                 <Button.Outline size="small" onClick={onClaimCollateralClick}>
                   <Icon color="primary" name="Close" size="1em" mr={1} /> Claim Borrower&apos;s Collateral
                 </Button.Outline>

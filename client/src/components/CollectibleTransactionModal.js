@@ -492,7 +492,6 @@ const renderModalContent = (
       ];
       onConfirm = async () => {
         const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
-
         // set for approval
         const result = await Lend721Contract.methods
           .claimBorrowerCollateral(item.tokenAddress, item.tokenId)

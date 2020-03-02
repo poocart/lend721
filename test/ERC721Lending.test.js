@@ -176,4 +176,21 @@ describe('ERC721Lending', () => {
       expect(ownerOfToken).toBe(borrower);
     });
   });
+
+  describe('claimBorrowerCollateral()', () => {
+    beforeEach(async () => {
+      await successfullyLendToken();
+      await successfullyBorrowToken();
+    });
+
+    it('should successfully claim collateral', async () => {
+      // const collateralAmount = lendInitialWorth.add(lendEarningGoal);
+      // await erc20.approve(lendingContract.address, collateralAmount, { from: borrower });
+      // const borrowerAllowanceForLendingContract = await erc20.allowance(borrower, lendingContract.address);
+      const result = await lendingContract
+        .claimBorrowerCollateral(erc721.address, lendTokenId, { from: lender })
+        .catch((error) => error);
+      console.log('result: ', result);
+    });
+  });
 });
