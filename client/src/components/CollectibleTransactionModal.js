@@ -3,6 +3,8 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import isEmpty from 'lodash/isEmpty';
 import get from 'lodash/get';
+import styled from 'styled-components';
+import { Select } from 'rimble-ui';
 
 // actions
 import {
@@ -15,6 +17,7 @@ import {
 
 // constants
 import {
+  APPROVED_FOR_BORROWING,
   APPROVED_FOR_LENDING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
@@ -22,10 +25,14 @@ import {
 } from '../constants/collectibleTypeConstants';
 
 // services
-import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
+import {
+  LEND_CONTRACT_ADDRESS,
+  PAYABLE_TOKEN_ADDRESS,
+} from '../services/contracts';
 
 // assets
 import erc721Abi from '../assets/abi/erc721.json';
+import erc20Abi from '../assets/abi/erc20.json';
 import lend721Abi from '../assets/abi/lend721.json';
 
 // components
@@ -36,9 +43,18 @@ import NumericInput from './NumericInput';
 // utils
 import {
   findMatchingCollectible,
-  isCaseInsensitiveMatch,
+  formatLendDuration,
+  formatTokenAmount,
+  getLendDurationTitle,
+  isPendingCollectibleTransaction,
 } from '../utils';
 
+
+const SelectInputWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+`;
 
 const renderModalContent = (
   collectibles,
@@ -57,7 +73,10 @@ const renderModalContent = (
   let subtitle;
   let confirmTitle;
   let onConfirm;
-  let inputs;
+  let confirmDisabled;
+  let modalData;
+  let collateralAmount;
+  let errorMessage;
 
   const item = findMatchingCollectible(
     collectibles,
@@ -89,15 +108,86 @@ const renderModalContent = (
 
   const connectedAccountAddress = connectedAccount.address;
 
+  const pendingTransactionHash = item
+    && isPendingCollectibleTransaction(pendingTransaction, item.tokenAddress, item.tokenId)
+    && pendingTransaction.transactionHash;
+
   switch (item.type) {
     case AVAILABLE_FOR_BORROW:
       title = `Borrow ${item.title}`;
-      subtitle = 'Allow smart contract to use specified DAI amount as collateral';
-      confirmTitle = 'Confirm Borrow';
+      subtitle = 'Allow lending Smart Contract to use DAI amount needed to borrow selected ERC-721 token';
+      collateralAmount = item.extra.initialWorth + item.extra.earningGoal;
+      confirmTitle = `Allow usage of ${collateralAmount} DAI`;
+      if (!connectedAccount.balance || connectedAccount.balance < collateralAmount) {
+        errorMessage = 'Not enough DAI balance.';
+        confirmDisabled = true;
+      }
+      modalData = [
+        {
+          title: 'Collateral of token\'s initial worth',
+          key: 'initialWorth',
+          render: (
+            <NumericInput
+              defaultValue={item.extra.initialWorth}
+              inputWidth={70}
+              ticker="DAI"
+              disabled
+              textRight
+            />
+          ),
+        },
+        {
+          title: 'Price for lend',
+          key: 'earningGoal',
+          render: (
+            <NumericInput
+              defaultValue={item.extra.earningGoal}
+              inputWidth={70}
+              ticker="DAI"
+              disabled
+              textRight
+            />
+          ),
+        },
+        {
+          title: 'Max. lending duration',
+          key: 'duration',
+          render: (
+            <NumericInput
+              defaultValue={formatLendDuration(item.extra.durationHours)}
+              inputWidth={35}
+              ticker={getLendDurationTitle(item.extra.durationHours)}
+              disabled
+              textRight
+            />
+          ),
+        },
+      ];
+      onConfirm = async () => {
+        const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+        // set for approval
+        const result = await ERC20Contract.methods
+          .approve(LEND_CONTRACT_ADDRESS, formatTokenAmount(collateralAmount))
+          .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
+            hash,
+            item.tokenAddress,
+            item.tokenId,
+          ))
+          .catch(() => {});
+
+        const resultTransactionHash = get(result, 'transactionHash');
+        onTransactionResult(
+          resultTransactionHash,
+          item.tokenAddress,
+          item.tokenId,
+          { type: APPROVED_FOR_BORROWING },
+          true,
+        );
+      };
       break;
     case AVAILABLE_FOR_LENDING:
       title = `Approve usage of\n ${item.title}`;
-      subtitle = 'Allow smart contract to use selected NFT';
+      subtitle = 'Allow lending smart contract to use selected ERC-721 token';
       confirmTitle = 'Approve';
       onConfirm = async () => {
         const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
@@ -124,31 +214,62 @@ const renderModalContent = (
       break;
     case APPROVED_FOR_LENDING:
       title = `Lend ${item.title}`;
-      subtitle = 'Set lend conditions and start lending your NFT';
+      subtitle = 'Set lend conditions and start lending selected ERC-721 token';
       confirmTitle = 'Confirm Lend';
-      inputs = [
+      modalData = [
         {
           title: 'Initial token worth',
           key: 'initialWorth',
-          input: (
+          render: (
             <NumericInput
               onChange={(initialWorth) => setLendSettings({ ...lendSettings, initialWorth })}
               placeholder="1"
               inputWidth={70}
               ticker="DAI"
+              disabled={!!pendingTransactionHash}
               textRight
             />
           ),
         },
         {
-          title: 'Lend interest',
-          key: 'lendInterest',
-          input: (
+          title: 'Max. lend duration',
+          key: 'duration',
+          render: (
+            <SelectInputWrapper>
+              <NumericInput
+                onChange={(duration) => setLendSettings({ ...lendSettings, duration })}
+                placeholder="1"
+                inputWidth={35}
+                disabled={!!pendingTransactionHash}
+                textRight
+                noDecimals
+              />
+              <Select
+                ml={2}
+                options={[
+                  { value: 'h', label: 'hour(s)' },
+                  { value: 'd', label: 'day(s)' },
+                ]}
+                disabled={!!pendingTransactionHash}
+                onChange={
+                  ({
+                    target: { value: durationType },
+                  }) => setLendSettings({ ...lendSettings, durationType })
+                }
+              />
+            </SelectInputWrapper>
+          ),
+        },
+        {
+          title: 'Earning goal for each lend',
+          key: 'earningGoal',
+          render: (
             <NumericInput
-              onChange={(lendInterest) => setLendSettings({ ...lendSettings, lendInterest })}
-              placeholder="10"
+              onChange={(earningGoal) => setLendSettings({ ...lendSettings, earningGoal })}
+              placeholder="1"
               inputWidth={70}
-              ticker="%"
+              ticker="DAI"
+              disabled={!!pendingTransactionHash}
               textRight
             />
           ),
@@ -156,21 +277,26 @@ const renderModalContent = (
       ];
       onConfirm = async () => {
         const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
-        const { initialWorth, lendInterest } = lendSettings;
-        const durationMilliseconds = 1;
+        const {
+          initialWorth,
+          earningGoal,
+          duration,
+          durationType,
+        } = lendSettings;
+        const durationHours = durationType === 'd' ? duration * 24 : duration;
         const extra = {
           initialWorth,
-          lendInterest,
-          durationMilliseconds,
+          earningGoal,
+          durationHours,
         };
         // set for lending
         const result = await Lend721Contract.methods
-          .lendForTime(
+          .setLendSettings(
             item.tokenAddress,
             item.tokenId,
-            durationMilliseconds,
-            initialWorth,
-            lendInterest,
+            durationHours,
+            formatTokenAmount(initialWorth),
+            formatTokenAmount(earningGoal),
           )
           .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
             hash,
@@ -189,6 +315,12 @@ const renderModalContent = (
           true,
         );
       };
+      confirmDisabled = isEmpty(lendSettings.earningGoal)
+        || isEmpty(lendSettings.duration)
+        || isEmpty(lendSettings.initialWorth)
+        || lendSettings.initialWorth <= 0
+        || lendSettings.duration <= 0
+        || lendSettings.earningGoal <= 0;
       break;
     case SET_FOR_LENDING:
       title = `Cancel lend of ${item.title}`;
@@ -221,26 +353,21 @@ const renderModalContent = (
       break;
   }
 
-  let pendingTransactionHash;
-  if (!isEmpty(pendingTransaction)
-    && isCaseInsensitiveMatch(pendingTransaction.tokenAddress, item.tokenAddress)
-    && isCaseInsensitiveMatch(pendingTransaction.tokenId, item.tokenId)) {
-    pendingTransactionHash = pendingTransaction.transactionHash;
-  }
-
   return (
     <TransactionDetails
       senderAddress={connectedAccountAddress}
-      transactionHash={pendingTransactionHash}
+      transactionHash={pendingTransactionHash || ''}
       tokenId={item.tokenId}
       tokenName={item.title}
-      inputs={inputs}
+      data={modalData}
       title={title}
       subtitle={subtitle}
       actionConfirmTitle={confirmTitle}
       actionCloseTitle="Close"
       onConfirm={onConfirm}
+      confirmDisabled={confirmDisabled}
       onClose={closeModal}
+      errorMessage={errorMessage}
     />
   );
 };
@@ -287,6 +414,7 @@ CollectibleTransactionModal.propTypes = {
   connectedAccount: PropTypes.shape({
     address: PropTypes.string,
     networkId: PropTypes.number,
+    balance: PropTypes.number,
   }),
   updateCollectibleData: PropTypes.func,
   setCollectiblePreviewTransaction: PropTypes.func,

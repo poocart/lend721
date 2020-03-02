@@ -25,12 +25,14 @@ const Ticker = styled.strong`
   color: #3D0158;
 `;
 
-const parseValue = (event, onChange, setCurrentValue) => {
+const parseValue = (event, onChange, setCurrentValue, noDecimals) => {
   const { value: rawValue } = event.target;
   let value = rawValue
     .replace(/[^0-9.,]+/g, '')
     .replace(/[,]+/g, '.');
-  if (value.indexOf('.') !== value.lastIndexOf('.')) {
+  if (noDecimals) {
+    value = value.replace(/[.]+/g, '');
+  } else if (value.indexOf('.') !== value.lastIndexOf('.')) {
     const [first, ...rest] = value.split('.');
     value = `${first}.${rest.join('')}`;
   }
@@ -48,9 +50,12 @@ const NumericInput = ({
   inputWidth,
   noPlaceholder,
   onChange,
+  disabled,
+  noDecimals,
+  defaultValue,
 }) => {
   const [currentValue, setCurrentValue] = useState('');
-  const valueParser = (event) => parseValue(event, onChange, setCurrentValue);
+  const valueParser = (event) => parseValue(event, onChange, setCurrentValue, noDecimals);
   return (
     <InputRow textRight={textRight}>
       <StyledInput
@@ -59,9 +64,10 @@ const NumericInput = ({
         paddingRight={paddingRight}
         textRight={textRight}
         inputWidth={inputWidth}
-        value={currentValue}
+        value={currentValue || defaultValue}
         onChange={valueParser}
         onBlur={valueParser}
+        disabled={disabled}
       />
       {ticker && <Ticker>{ticker}</Ticker>}
     </InputRow>
@@ -77,6 +83,9 @@ NumericInput.propTypes = {
   inputWidth: PropTypes.number,
   noPlaceholder: PropTypes.bool,
   onChange: PropTypes.func,
+  disabled: PropTypes.bool,
+  noDecimals: PropTypes.bool,
+  defaultValue: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 
 export default NumericInput;

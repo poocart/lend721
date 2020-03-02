@@ -24,7 +24,6 @@ import {
 import Tabs from '../components/Tabs';
 import CardsGrid from '../components/CardsGrid';
 import ConnectAccount from '../components/ConnectAccount';
-import Emoji from '../components/Emoji';
 import CollectibleTransactionModal from '../components/CollectibleTransactionModal';
 
 // services
@@ -38,20 +37,23 @@ import {
   filterLentCollectibles,
   filterOwnedCollectibles,
   truncateHexString,
+  isPendingCollectibleTransaction,
+  formatLendDuration,
+  getLendDurationTitle,
 } from '../utils';
 
-
-const Title = styled.h1`
-  margin: 55px 0px 0px 0px;
-  @media (max-width: 700px) {
-    margin-top: 20px;
-  }
-`;
+// assets
+import lend721Logo from '../assets/images/lend721.png';
 
 const Subtitle = styled.span`
   margin: 10px 0px 0px 0px;
   font-size: 17px;
   word-break: break-all;
+`;
+
+const Logo = styled.img`
+  width: 250px;
+  display: inline-block;
 `;
 
 const Page = styled.div`
@@ -66,6 +68,9 @@ const Content = styled.div`
   text-align: center;
 `;
 
+const CardLoadingWrapper = styled.div`
+`;
+
 const renderLent = (lent, setCollectiblePreviewTransaction) => {
   if (isEmpty(lent)) return null;
 
@@ -77,22 +82,24 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
   }) => {
     const {
       initialWorth,
-      lendInterest,
-      durationMilliseconds,
+      earningGoal,
+      durationHours,
       borrowerAddress,
     } = extra;
 
     const isBorrowed = !isEmpty(borrowerAddress)
       && !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
 
-    const periodEnded = false;
+    const durationEnded = false;
     const onCancelClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
+    const duration = formatLendDuration(durationHours);
+    const durationType = getLendDurationTitle(durationHours);
     return (
       <tr key={`${tokenAddress}${tokenId}`}>
         <td>{title}</td>
+        <td>{duration} {durationType}</td>
+        <td>{earningGoal} DAI</td>
         <td>{initialWorth} DAI</td>
-        <td>{lendInterest}%</td>
-        <td>{durationMilliseconds}</td>
         <td>{isBorrowed ? `Borrowed by ${borrowerAddress}` : 'No'}</td>
         <td>
           {!isBorrowed && (
@@ -100,7 +107,7 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
               <Icon color="primary" name="Close" size="1em" mr={1} /> Cancel Lending
             </Button.Outline>
           )}
-          {isBorrowed && periodEnded && 'Withdraw borrowers collateral'}
+          {isBorrowed && durationEnded && 'Withdraw borrowers collateral'}
         </td>
       </tr>
     );
@@ -110,10 +117,10 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
     <Table style={{ marginTop: 40 }}>
       <thead>
         <tr>
-          <th>Nifty</th>
+          <th>ERC-721 nifty</th>
+          <th>Max. lending duration</th>
+          <th>Earning goal for duration</th>
           <th>Initial worth</th>
-          <th>Interest</th>
-          <th>Lending period</th>
           <th>Borrowed</th>
           <th>Actions</th>
         </tr>
@@ -123,10 +130,37 @@ const renderLent = (lent, setCollectiblePreviewTransaction) => {
   );
 };
 
-const renderCards = (data, actionTitlePrefix, setCollectiblePreviewTransaction, inverted) => (
+const renderCards = (
+  data,
+  actionTitlePrefix,
+  setCollectiblePreviewTransaction,
+  inverted,
+  pendingTransaction,
+) => (
   <CardsGrid
     data={data}
-    renderCardButtonTitle={({ title }) => `${actionTitlePrefix} ${title}`}
+    checkIfDisabled={
+      ({
+        tokenAddress,
+        tokenId,
+      }) => isPendingCollectibleTransaction(pendingTransaction, tokenAddress, tokenId)
+    }
+    renderCardButtonTitle={({ title, tokenAddress, tokenId }) => {
+      const isPendingTransaction = isPendingCollectibleTransaction(
+        pendingTransaction,
+        tokenAddress,
+        tokenId,
+      );
+      if (isPendingTransaction) {
+        return (
+          <CardLoadingWrapper>
+            <Loader style={{ display: 'inline-block', top: 2 }} mr={2} size={15} color="#000" />
+            <span style={{ color: '#000' }}>Pending transaction...</span>
+          </CardLoadingWrapper>
+        );
+      }
+      return `${actionTitlePrefix} ${title}`;
+    }}
     onCardButtonClick={(item) => setCollectiblePreviewTransaction(item.tokenAddress, item.tokenId)}
     invertedCardButton={inverted}
   />
@@ -172,9 +206,9 @@ const App = ({
   const borrowCollectibles = collectibles.data && filterCollectiblesToBorrow(collectibles.data);
 
   const tabs = [
-    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction) },
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction, false, collectibles.pendingTransaction) },
     { title: isMobile ? 'Lent' : 'Your lends', content: renderLent(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
-    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true) },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction) },
     { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
   ];
 
@@ -189,7 +223,7 @@ const App = ({
   return (
     <Page>
       <Content>
-        <Title>Lend and borrow ERC-721 NFT <Emoji content="🎉" /></Title>
+        <Logo src={lend721Logo} />
         {appError && (
           <Flash variant="warning" style={{ marginTop: 40 }}>
             <strong>Great Scott!</strong>
@@ -203,7 +237,7 @@ const App = ({
           </Flash>
         )}
         {!isConnectedRinkeby && (
-          <Flash variant="warning" style={{ marginTop: 40, marginBottom: 20 }}>
+          <Flash variant="danger" style={{ marginTop: 40, marginBottom: 20 }}>
             <strong>We&apos;re testing!</strong>
             &nbsp;Seems like you are connected, but not on Rinkeby.<br />
           </Flash>
@@ -228,6 +262,7 @@ App.propTypes = {
   setCollectiblePreviewTransaction: PropTypes.func,
   collectibles: PropTypes.shape({
     data: PropTypes.array,
+    pendingTransaction: PropTypes.object,
   }),
   connectedAccount: PropTypes.shape({
     address: PropTypes.string,

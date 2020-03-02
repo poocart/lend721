@@ -7,19 +7,8 @@ const ModalComponent = ({
   content,
 }) => (
   <Modal isOpen={show}>
-    <Card maxWidth="420px" p={0}>
+    <Card maxWidth="520px" p={0}>
       {content}
-      {/*<Button.Text*/}
-      {/*  icononly*/}
-      {/*  icon="Close"*/}
-      {/*  color="moon-gray"*/}
-      {/*  position="absolute"*/}
-      {/*  top={0}*/}
-      {/*  right={0}*/}
-      {/*  mt={3}*/}
-      {/*  mr={3}*/}
-      {/*  onClick={() => onClose()}*/}
-      {/*/>*/}
     </Card>
   </Modal>
 );

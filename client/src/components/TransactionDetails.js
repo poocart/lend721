@@ -11,7 +11,9 @@ import {
   Link,
   Heading,
   Button,
+  Flash,
 } from 'rimble-ui';
+import isEmpty from 'lodash/isEmpty';
 
 // utils
 import { truncateHexString } from '../utils';
@@ -91,7 +93,9 @@ const TransactionDetails = ({
   actionCloseTitle,
   onConfirm,
   onClose,
-  inputs,
+  data,
+  confirmDisabled,
+  errorMessage,
 }) => (
   <Card borderRadius={1} p={0}>
     <Flex
@@ -163,8 +167,9 @@ const TransactionDetails = ({
           {renderAddressRow('Your account', senderAddress, `https://rinkeby.etherscan.io/address/${senderAddress}`)}
           {tokenName && renderTextRow('Token name', tokenName, 'tokenName')}
           {tokenId && renderTextRow('Token ID', tokenId, 'tokenId')}
-          {inputs && inputs.map((inputRow) => renderTextRow(inputRow.title, inputRow.input, inputRow.key))}
+          {data && data.map((row) => renderTextRow(row.title, row.render, row.key))}
         </Flex>
+        {!isEmpty(errorMessage) && <Flash variant="warning">{errorMessage}</Flash>}
       </Flex>
     </Box>
     <Flex
@@ -175,14 +180,22 @@ const TransactionDetails = ({
       justifyContent="flex-end"
     >
       <Button.Outline onClick={onClose}>{actionCloseTitle}</Button.Outline>
-      {!transactionHash && <Button ml={3} onClick={onConfirm}>{actionConfirmTitle}</Button>}
+      {!transactionHash && (
+        <Button
+          ml={3}
+          disabled={confirmDisabled}
+          onClick={confirmDisabled ? () => {} : onConfirm}
+        >
+          {actionConfirmTitle}
+        </Button>
+      )}
     </Flex>
   </Card>
 );
 
-const InputPropType = PropTypes.shape({
+const DataPropType = PropTypes.shape({
   title: PropTypes.string.isRequired,
-  input: PropTypes.node.isRequired,
+  render: PropTypes.node.isRequired,
   key: PropTypes.node.isRequired,
 });
 
@@ -198,7 +211,9 @@ TransactionDetails.propTypes = {
   tokenId: PropTypes.string,
   onClose: PropTypes.func,
   onConfirm: PropTypes.func,
-  inputs: PropTypes.arrayOf(InputPropType),
+  data: PropTypes.arrayOf(DataPropType),
+  confirmDisabled: PropTypes.bool,
+  errorMessage: PropTypes.string,
 };
 
 export default TransactionDetails;

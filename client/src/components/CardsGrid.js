@@ -47,6 +47,10 @@ const CardButton = styled.span`
     background: ${inverted ? '#F9564F' : '#2d9f13'}; 
     &:hover { background: ${inverted ? '#bb342e' : '#02763a'}; }
   `}
+  ${({ disabled }) => disabled && `
+    background: #ddd; 
+    &:hover { background: #ddd; }
+  `}
   padding: 8px 10px;
   cursor: pointer;
   color: #fff;
@@ -65,6 +69,7 @@ const CardsGrid = ({
   onCardButtonClick,
   renderCardButtonTitle,
   invertedCardButton,
+  checkIfDisabled,
 }) => {
   if (data == null) return <Loader style={{ marginTop: 65 }} size="40px" />;
   return (
@@ -72,12 +77,14 @@ const CardsGrid = ({
       {isEmpty(data) && <MessageNotFound>Oops! Nothing found <Emoji size={32} content="🤷" /></MessageNotFound>}
       {!isEmpty(data) && data.map((item) => {
         const { image, backgroundColor } = item;
+        const disabled = checkIfDisabled && checkIfDisabled(item);
         return (
           <Card key={`${uniqueId('card_')}`} backgroundColor={backgroundColor}>
             <CardImage src={image || notFoundImage} />
             <CardButton
               inverted={invertedCardButton}
-              onClick={() => onCardButtonClick(item)}
+              onClick={() => disabled ? {} : onCardButtonClick(item)}
+              disabled={disabled}
             >
               {renderCardButtonTitle(item)}
             </CardButton>
@@ -98,6 +105,7 @@ CardsGrid.propTypes = {
   renderCardButtonTitle: PropTypes.func.isRequired,
   onCardButtonClick: PropTypes.func.isRequired,
   invertedCardButton: PropTypes.bool,
+  checkIfDisabled: PropTypes.func,
 };
 
 export default CardsGrid;

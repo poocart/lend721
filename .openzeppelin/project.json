@@ -6,7 +6,7 @@
   "dependencies": {
     "@openzeppelin/contracts-ethereum-package": "^2.4.0"
   },
-  "name": "P2P_ER721_Lending",
+  "name": "ERC721Lending",
   "version": "0.0.1",
   "compiler": {
     "compilerSettings": {

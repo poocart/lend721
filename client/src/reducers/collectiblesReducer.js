@@ -11,7 +11,6 @@ import {
 const initialState = {
   data: null,
   previewTransaction: null,
-  pendingTransaction: null,
 };
 
 const collectiblesReducer = (state = initialState, action) => {

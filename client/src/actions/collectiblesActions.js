@@ -1,6 +1,11 @@
+import isEmpty from 'lodash/isEmpty';
+
 // services
 import { getCollectiblesByAddress } from '../services/collectibles';
-import { LEND_CONTRACT_ADDRESS } from '../services/contracts';
+import {
+  LEND_CONTRACT_ADDRESS,
+  PAYABLE_TOKEN_ADDRESS,
+} from '../services/contracts';
 
 // constants
 import {
@@ -12,6 +17,7 @@ import {
   RESET_COLLECTIBLE_PENDING_TRANSACTION,
 } from '../constants/collectibleConstants';
 import {
+  APPROVED_FOR_BORROWING,
   APPROVED_FOR_LENDING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
@@ -19,10 +25,14 @@ import {
 } from '../constants/collectibleTypeConstants';
 
 // utils
-import { isCaseInsensitiveMatch } from '../utils';
+import {
+  isCaseInsensitiveMatch,
+  parseTokenAmount,
+} from '../utils';
 
 // assets
 import erc721Abi from '../assets/abi/erc721.json';
+import erc20Abi from '../assets/abi/erc20.json';
 import lend721Abi from '../assets/abi/lend721.json';
 
 
@@ -72,43 +82,51 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
   await Promise.all(fetchedContractCollectibles.map(async (item) => {
     let lenderAddress;
     let lentSettings;
+    let collectibleType = AVAILABLE_FOR_BORROW;
+    let extra = {};
     try {
       lentSettings = await Lend721Contract.methods
         .lentERC721List(item.tokenAddress, item.tokenId)
         .call();
       ({ lender: lenderAddress } = lentSettings);
+      const {
+        initialWorth,
+        earningGoal,
+        borrower: borrowerAddress,
+        durationHours,
+      } = lentSettings;
+      extra = {
+        earningGoal: parseTokenAmount(earningGoal),
+        initialWorth: parseTokenAmount(initialWorth),
+        borrowerAddress,
+        durationHours,
+      };
     } catch (e) {
       //
     }
     if (isCaseInsensitiveMatch(lenderAddress, connectedAccountAddress)) {
-      const {
-        initialWorth,
-        interest: lendInterest,
-        borrower: borrowerAddress,
-        durationMilliseconds,
-      } = lentSettings;
-      lentCollectibles = [
-        ...lentCollectibles,
-        {
-          ...item,
-          type: SET_FOR_LENDING,
-          extra: {
-            lendInterest,
-            initialWorth,
-            borrowerAddress,
-            durationMilliseconds,
-          },
-        },
-      ];
-    } else {
-      contractCollectibles = [
-        ...contractCollectibles,
-        {
-          ...item,
-          type: AVAILABLE_FOR_BORROW,
-        },
-      ];
+      collectibleType = SET_FOR_LENDING;
+    } else if (!isEmpty(extra)) {
+      try {
+        const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+        const allowance = await ERC20Contract.methods
+          .allowance(connectedAccountAddress, LEND_CONTRACT_ADDRESS)
+          .call();
+        const allowanceAmount = parseTokenAmount(allowance);
+        const requiredAllowance = extra.initialWorth + extra.earningGoal;
+        if (allowanceAmount >= requiredAllowance) collectibleType = APPROVED_FOR_BORROWING;
+      } catch (e) {
+        //
+      }
     }
+    lentCollectibles = [
+      ...lentCollectibles,
+      {
+        ...item,
+        type: collectibleType,
+        extra,
+      },
+    ];
   }));
 
   dispatch({

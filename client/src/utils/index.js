@@ -1,7 +1,10 @@
 import toLower from 'lodash/toLower';
+import { utils as ethersUtils } from 'ethers';
+import isEmpty from 'lodash/isEmpty';
 
 // constants
 import {
+  APPROVED_FOR_BORROWING,
   APPROVED_FOR_LENDING,
   AVAILABLE_FOR_BORROW,
   AVAILABLE_FOR_LENDING,
@@ -43,6 +46,7 @@ export const filterOwnedCollectibles = (collectibles) => collectibles.filter(({ 
 
 export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(({ type }) => [
   AVAILABLE_FOR_BORROW,
+  APPROVED_FOR_BORROWING,
 ].includes(type));
 
 export const filterLentCollectibles = (collectibles) => collectibles.filter(({ type }) => [
@@ -53,7 +57,27 @@ export const findMatchingCollectible = (
   collectibles,
   tokenAddress,
   tokenId,
-) => collectibles.find(
-  (collectible) => isCaseInsensitiveMatch(collectible.tokenAddress, tokenAddress)
-    && isCaseInsensitiveMatch(collectible.tokenId, tokenId),
-);
+) => collectibles.find((
+  collectible,
+) => isCaseInsensitiveMatch(collectible.tokenAddress, tokenAddress)
+    && isCaseInsensitiveMatch(collectible.tokenId, tokenId));
+
+export const formatTokenAmount = (value) => ethersUtils.parseUnits(value.toString(), 18);
+
+export const parseTokenAmount = (value) => Number(ethersUtils.formatUnits(value.toString(), 18));
+
+export const isPendingCollectibleTransaction = (
+  pendingTransaction,
+  tokenAddress,
+  tokenId,
+) => !isEmpty(pendingTransaction)
+  && isCaseInsensitiveMatch(pendingTransaction.tokenAddress, tokenAddress)
+  && isCaseInsensitiveMatch(pendingTransaction.tokenId, tokenId);
+
+export const formatLendDuration = (
+  duration,
+) => duration >= 24 ? Math.floor(duration / 24) : duration;
+
+export const getLendDurationTitle = (
+  duration,
+) => duration >= 24 ? 'day(s)' : 'hour(s)';

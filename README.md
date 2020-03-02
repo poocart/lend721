@@ -7,15 +7,15 @@ Current stage: **alpha**
 ### To do before beta
 - [x] Client dApp: show lent data
 - [ ] Client dApp: show borrowed data
-- [ ] Client dApp borrower: call DAI approve method
-- [ ] Client dApp borrower: call borrow method
+- [x] Client dApp borrower: call DAI approve method
+- [x] Client dApp borrower: call borrow method
 - [x] Client dApp lender: call ERC-721 approve method
 - [x] Client dApp lender: call ERC-721 lend set method
 - [ ] Show success or error messages on each transaction
-- [ ] Set duration for lendings
+- [x] Set duration for lendings
 - [ ] Email reminders for borrower or lender
 - [ ] Deploy Smart Contract to mainnet
-- [ ] Verify Smart Contract in Etherscan
+- [ ] Verify Smart Contract in mainnet Etherscan
 
 ### 💡 Description
 LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
@@ -24,7 +24,7 @@ set for lending by paying collateral to LEND721 which handles the lend process.
 
 ### 🏠 Smart Contract addresses across Ethereum networks
 - Mainnet: TBA
-- Rinkeby: [0x324C1A7193F84b97ba911471cb5Cb46b139AF698](https://rinkeby.etherscan.io/address/0x324C1A7193F84b97ba911471cb5Cb46b139AF698)
+- Rinkeby: [0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0](https://rinkeby.etherscan.io/address/0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0)
 
 `Note: Smart Contract calls are proxied to main Smart Contract so calls destination is the Proxy Smart Contract itself.`
 
