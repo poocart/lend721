@@ -10,7 +10,7 @@ import {
 import { PAYABLE_TOKEN_ADDRESS } from '../services/contracts';
 
 // assets
-import erc20Abi from '../assets/abi/erc20.json';
+import erc20Abi from '../../../abi/erc20.json';
 
 // utils
 import { parseTokenAmount } from '../utils';

@@ -31,3 +31,7 @@ yarn-error.log*
 client/.next
 client/build
 client/out
+
+# .thegraph
+.thegraph/build
+.thegraph/generated

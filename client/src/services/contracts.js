@@ -1,4 +1,4 @@
-import lend721Abi from '../assets/abi/lend721.json';
+import lend721Abi from '../../../abi/lend721.json';
 
 
 export const LEND_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "test:contracts": "oz compile && jest test"
+    "contracts:test": "oz compile && jest test"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.5.0",

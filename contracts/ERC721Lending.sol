@@ -14,7 +14,9 @@ contract ERC721Lending is Initializable {
     uint256 borrowedAtTimestamp;
     address lender;
     address borrower;
+    bool lenderClaimedCollateral;
   }
+
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
 
   struct ERC721TokenEntry {
@@ -22,7 +24,11 @@ contract ERC721Lending is Initializable {
     address tokenAddress;
     uint256 tokenId;
   }
+
   ERC721TokenEntry[] public lendersWithTokens;
+
+  event ERC721ForLendUpdated(address tokenAddress, uint256 tokenId);
+  event ERC721ForLendRemoved(address tokenAddress, uint256 tokenId);
 
   function initialize(address tokenAddress) initializer public {
     acceptedPayTokenAddress = tokenAddress;
@@ -34,10 +40,14 @@ contract ERC721Lending is Initializable {
     require(durationHours > 0, 'Lending: Lending duration must be above 0');
     require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot change settings, token already lent');
     require(IERC721(tokenAddress).getApproved(tokenId) == address(this), 'Lending: Token usage by smart contract needs to be approved');
+    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Lending: Collateral already claimed');
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0));
+
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false);
     lendersWithTokens.push(ERC721TokenEntry(msg.sender, tokenAddress, tokenId));
+
+    emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
 
   function startBorrowing(address tokenAddress, uint256 tokenId) public {
@@ -53,12 +63,15 @@ contract ERC721Lending is Initializable {
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
     lentERC721List[tokenAddress][tokenId].borrower = msg.sender;
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = now;
+
+    emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
 
   function stopBorrowing(address tokenAddress, uint256 tokenId) public {
     address _borrower = lentERC721List[tokenAddress][tokenId].borrower;
     require(_borrower == msg.sender, 'Borrowing: Can be stopped only by active borrower');
     require(IERC721(tokenAddress).getApproved(tokenId) == address(this), 'Borrowing: Token transfer needs to be approved');
+    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Borrowing: Too late, lender claimed collateral');
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
 
@@ -73,6 +86,8 @@ contract ERC721Lending is Initializable {
     uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
 
     IERC20(acceptedPayTokenAddress).transfer(_lender, _earningGoal);
+
+    emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
 
   function calculateLendSum(address tokenAddress, uint256 tokenId) public view returns(uint256) {
@@ -90,8 +105,9 @@ contract ERC721Lending is Initializable {
   function removeFromLending(address tokenAddress, uint256 tokenId) public {
     require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot cancel if in lend');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Lending: Cannot cancel if not owned');
+    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Lending: Collateral claimed');
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0)); // reset lend mappings
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false); // reset lend mappings
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     uint totalCount = lendersWithTokens.length;
@@ -102,6 +118,8 @@ contract ERC721Lending is Initializable {
       }
     }
     lendersWithTokens.length--;
+
+    emit ERC721ForLendRemoved(tokenAddress, tokenId);
   }
 
   function claimBorrowerCollateral(address tokenAddress, uint256 tokenId) public {
@@ -109,10 +127,9 @@ contract ERC721Lending is Initializable {
     uint256 _durationHours = lentERC721List[tokenAddress][tokenId].durationHours;
     require(isDurationExpired(_borrowedAtTimestamp, _durationHours), 'Claim: Cannot claim before lend expired');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Claim: Cannot claim not owned lend');
+    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Claim: Already claimed');
 
-    // reset
-    lentERC721List[tokenAddress][tokenId].borrower = address(0);
-    lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
+    lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral = true;
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     uint totalCount = lendersWithTokens.length;
@@ -126,5 +143,7 @@ contract ERC721Lending is Initializable {
 
     uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
     IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
+
+    emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
 }

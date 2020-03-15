@@ -37,9 +37,9 @@ import {
 } from '../utils';
 
 // assets
-import erc721Abi from '../assets/abi/erc721.json';
-import erc20Abi from '../assets/abi/erc20.json';
-import lend721Abi from '../assets/abi/lend721.json';
+import erc721Abi from '../../../abi/erc721.json';
+import erc20Abi from '../../../abi/erc20.json';
+import lend721Abi from '../../../abi/lend721.json';
 
 
 const isMatchingCollectible = (
