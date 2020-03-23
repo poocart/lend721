@@ -103,4 +103,4 @@ export const isEmptyAddress = (
   address,
 ) => !address || isCaseInsensitiveMatch(address, EMPTY_ADDRESS);
 
-export const getEtherscanHostname = () => ` https://${isProduction ? 'rinkeby.' : ''}etherscan.io`;
+export const getEtherscanHostname = () => ` https://${isProduction ? '' : 'rinkeby.'}etherscan.io`;
