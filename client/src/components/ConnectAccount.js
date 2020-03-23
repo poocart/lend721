@@ -13,7 +13,7 @@ const ConnectAccount = ({ onClick }) => (
     >
       Connect with MetaMask
     </MetaMaskButton.Outline>
-    {isProduction && (
+    {!isProduction && (
       <small style={{ marginTop: 25 }}>
         Note: Seems you&apos;re in test environment,
         make sure you&apos;re connected to Rinkeby testnet
