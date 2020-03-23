@@ -1,6 +1,6 @@
 [build]
 base = "client/"
-publish = "client/out"
+publish = "out/"
 command = "yarn next build && yarn next export"
 
 [build.environment]
