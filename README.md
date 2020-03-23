@@ -10,12 +10,12 @@ Current stage: **beta**
 - [x] Client dApp lender: call ERC-721 approve method
 - [x] Client dApp lender: call ERC-721 lend set method
 - [x] Set duration for lendings
-- [ ] Put lenders addresses with lent tokens somwehere outside of smart contract (UX improvement)
+- [x] Deploy Smart Contract to mainnet
+- [x] Verify Smart Contract in mainnet Etherscan
+- [x] Put lenders addresses with lent tokens somwehere outside of smart contract (UX improvement) – (note: solved with thegraph.com)
 - [ ] Show message when collateral was already taken on expired lend
 - [ ] Show success or error messages on each transaction
 - [ ] Email reminders for borrower or lender
-- [ ] Deploy Smart Contract to mainnet
-- [ ] Verify Smart Contract in mainnet Etherscan
 - [ ] Allow edit lend
 
 ### 💡 Description
@@ -35,8 +35,10 @@ set for lending by paying collateral to LEND721 which handles the lend process.
 
 ### 📐 Deploy dApp on Arweave
 1. Setup Arweave:
-1.1. `npm i -g arweave-deploy`
-1.2. `arweave key-create ~/arweave-key.json`
-1.3 `arweave key-save ~/arweave-key.json`
+
+- `npm i -g arweave-deploy`
+- `arweave key-create ~/arweave-key.json`
+- `arweave key-save ~/arweave-key.json`
+
 2. Get AR tokens from [Arweave team](https://www.arweave.org/get-involved/community).
 3. Deploy  from `client` by running `yarn deploy`.
