@@ -34,7 +34,7 @@ set for lending by paying collateral to LEND721 which handles the lend process.
 - Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
 
 ### 📐 Deploy dApp on Arweave
-1. Setup Arweave:
+1. Setup [Arweave](https://github.com/ArweaveTeam/arweave-deploy):
 
 - `npm i -g arweave-deploy`
 - `arweave key-create ~/arweave-key.json`

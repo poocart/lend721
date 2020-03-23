@@ -22,7 +22,7 @@ const mapFromOpenSea = (data) => data.map(({
   tokenId,
 }));
 
-const getOpenSeaHostname = () => `https://${isProduction ? 'rinkeby-' : ''}api.opensea.io`;
+const getOpenSeaHostname = () => `https://${isProduction ? '' : 'rinkeby-'}api.opensea.io`;
 
 export const getCollectiblesByAddress = (address, attempt) => {
   const url = `${getOpenSeaHostname()}/api/v1/assets/?owner=${address}&exclude_currencies=true&order_by=listing_date&order_direction=asc`;
