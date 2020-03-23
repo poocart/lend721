@@ -2,6 +2,7 @@ require('dotenv').config({ path: '../.env' });
 const withImages = require('next-images');
 
 module.exports = withImages({
+  assetPrefix: process.env.ARWEAVE ? '../' : '',
   env: {
     PRODUCTION: process.env.ETHEREUM_NETWORK === 'mainnet',
     PAYABLE_TOKEN_ADDRESS: process.env.PAYABLE_TOKEN_ADDRESS,

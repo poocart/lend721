@@ -35,7 +35,8 @@
     "dev": "next",
     "build": "next build",
     "start": "next start",
-    "export": "next export"
+    "export": "next export",
+    "deploy": "ARWEAVE=true NODE_ENV=production rm -rf .next && rm -rf out && yarn build && yarn export && arweave deploy-dir out"
   },
   "eslintConfig": {
     "extends": "react-app"
