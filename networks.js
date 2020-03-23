@@ -13,7 +13,7 @@ module.exports = {
       networkId: '*',
     },
     rinkeby: {
-      provider: () => new HDWalletProvider(process.env.CONTRACT_OWNER_SEED, `https://rinkeby.infura.io/v3/${process.env.INFURA_PROJECT_ID}`),
+      provider: () => new HDWalletProvider(process.env.CONTRACT_OWNER_MNEMOMNIC, `https://rinkeby.infura.io/v3/${process.env.INFURA_PROJECT_ID}`),
       networkId: 4,
       gasPrice: 10e9
     }

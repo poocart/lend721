@@ -40,7 +40,7 @@ export const isCaseInsensitiveMatch = (a, b) => {
   return toLower(a) === toLower(b);
 };
 
-export const ACCOUNT_EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export const filterOwnedCollectibles = (collectibles) => collectibles.filter(({ type }) => [
   AVAILABLE_FOR_LENDING,
@@ -96,3 +96,11 @@ export const getLendDurationTitle = (
 export const pause = (
   multiplier,
 ) => new Promise(resolve => setTimeout(resolve, (multiplier || 1) * 1000));
+
+export const isProduction = !!process.env.PRODUCTION;
+
+export const isEmptyAddress = (
+  address,
+) => !address || isCaseInsensitiveMatch(address, EMPTY_ADDRESS);
+
+export const getEtherscanHostname = () => ` https://${isProduction ? 'rinkeby.' : ''}etherscan.io`;

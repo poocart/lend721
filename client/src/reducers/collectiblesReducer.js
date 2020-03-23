@@ -28,7 +28,7 @@ const collectiblesReducer = (state = initialState, action) => {
     case RESET_COLLECTIBLE_PENDING_TRANSACTION:
       return { ...state, pendingTransaction: null };
     default:
-      return { ...state };
+      return state;
   }
 };
 

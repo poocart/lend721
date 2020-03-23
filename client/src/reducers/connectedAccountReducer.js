@@ -15,7 +15,7 @@ const collectiblesReducer = (state = initialState, action) => {
     case SET_CONNECTED_ACCOUNT_BALANCE:
       return { ...state, balance: action.payload };
     default:
-      return { ...state };
+      return state;
   }
 };
 

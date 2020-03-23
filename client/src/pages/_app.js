@@ -7,10 +7,8 @@ import { applyMiddleware, createStore } from 'redux';
 import { Provider } from 'react-redux';
 import withRedux from 'next-redux-wrapper';
 import thunk from 'redux-thunk';
-import { persistStore, persistReducer } from 'redux-persist';
+import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
-import reduxPersistStorage from 'redux-persist/lib/storage';
-import hardSet from 'redux-persist/lib/stateReconciler/hardSet'
 
 // root reducer
 import rootReducer from '../reducers/rootReducer';
@@ -41,21 +39,20 @@ const customTheme = Object.assign({}, theme, {
   },
 });
 
-const persistConfig = {
-  key: 'root',
-  storage: reduxPersistStorage,
-  // whitelist: ['collectibles'],
-  // stateReconciler: hardSet,
+let reduxPersistor;
+
+const createModifiedStore = (initialState, { isServer }) => {
+  const store = createStore(rootReducer, initialState || {}, applyMiddleware(thunk));
+  if (isServer) return store;
+  reduxPersistor = persistStore(store);
+  return store;
 };
-const persistedReducer = persistReducer(persistConfig, rootReducer);
-const reduxStore = createStore(persistedReducer, {}, applyMiddleware(thunk));
-const reduxPersistor = persistStore(reduxStore);
 
 class App extends NextApp {
   render() {
-    const { Component, pageProps } = this.props;
+    const { Component, pageProps, store } = this.props;
     return (
-      <Provider store={reduxStore}>
+      <Provider store={store}>
         <ThemeProvider theme={customTheme}>
           <Head>
             <meta name="viewport" content="width=device-width,maximum-scale=1,initial-scale=1" />
@@ -78,4 +75,4 @@ class App extends NextApp {
   }
 }
 
-export default withRedux(() => reduxStore)(App);
+export default withRedux(createModifiedStore)(App);

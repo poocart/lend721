@@ -1,3 +1,4 @@
+import get from 'lodash/get';
 import isEmpty from 'lodash/isEmpty';
 
 // services
@@ -33,6 +34,7 @@ import {
 import {
   findMatchingCollectible,
   isCaseInsensitiveMatch,
+  isEmptyAddress,
   parseTokenAmount,
 } from '../utils';
 
@@ -62,6 +64,7 @@ const getCollectibleLendSettings = async (tokenAddress, tokenId) => {
       lender: lenderAddress,
       borrower: borrowerAddress,
       borrowedAtTimestamp,
+      lenderClaimedCollateral,
     } = lendSettings;
     settings = {
       earningGoal: parseTokenAmount(earningGoal),
@@ -70,6 +73,7 @@ const getCollectibleLendSettings = async (tokenAddress, tokenId) => {
       lenderAddress,
       durationHours,
       borrowedAtTimestamp,
+      lenderClaimedCollateral,
     };
   } catch (e) {
     //
@@ -138,14 +142,16 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
     accountCollectibles = await Promise.all(fetchedAccountCollectibles.map(async (item) => {
       let approvedAddress;
       let borrowerAddress;
+      let lenderAddress;
       let collectibleType = AVAILABLE_FOR_LENDING;
       let extra = {};
       try {
         const lendSettings = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
         if (!isEmpty(lendSettings)) {
           extra = lendSettings;
-          ({ borrowerAddress } = lendSettings);
-        } else {
+          ({ borrowerAddress, lenderAddress } = lendSettings);
+        }
+        if (isEmptyAddress(lenderAddress)) {
           const ERC721Contract = new window.web3.eth.Contract(erc721Abi, item.tokenAddress);
           approvedAddress = await ERC721Contract.methods
             .getApproved(item.tokenId)
@@ -171,33 +177,36 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
   const fetchedContractCollectibles = await getCollectiblesByAddress(LEND_CONTRACT_ADDRESS)
     .catch(() => []);
 
-  const borrowPoolCollectibles = await Promise.all(fetchedContractCollectibles.map(async (item) => {
-    let lenderAddress;
-    let collectibleType = AVAILABLE_FOR_BORROW;
-    let extra = {};
-    try {
-      extra = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
-      ({ lenderAddress } = extra);
-    } catch (e) {
-      //
-    }
-    if (isCaseInsensitiveMatch(lenderAddress, connectedAccountAddress)) {
-      collectibleType = SET_FOR_LENDING;
-    } else if (!isEmpty(extra)) {
+  const mappedContractCollectibles = fetchedContractCollectibles
+    .map(async (item) => {
+      let collectibleType = AVAILABLE_FOR_BORROW;
+      let extra = {};
+      let lenderAddress;
       try {
-        const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
-        const allowance = await ERC20Contract.methods
-          .allowance(connectedAccountAddress, LEND_CONTRACT_ADDRESS)
-          .call();
-        const allowanceAmount = parseTokenAmount(allowance);
-        const requiredAllowance = extra.initialWorth + extra.earningGoal;
-        if (allowanceAmount >= requiredAllowance) collectibleType = APPROVED_FOR_BORROWING;
+        extra = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
+        ({ lenderAddress } = extra);
       } catch (e) {
         //
       }
-    }
-    return { ...item, type: collectibleType, extra };
-  }));
+      if (lenderAddress && isCaseInsensitiveMatch(lenderAddress, connectedAccountAddress)) {
+        collectibleType = SET_FOR_LENDING;
+      } else if (!isEmpty(extra)) {
+        try {
+          const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+          const allowance = await ERC20Contract.methods
+            .allowance(connectedAccountAddress, LEND_CONTRACT_ADDRESS)
+            .call();
+          const allowanceAmount = parseTokenAmount(allowance);
+          const requiredAllowance = extra.initialWorth + extra.earningGoal;
+          if (allowanceAmount >= requiredAllowance) collectibleType = APPROVED_FOR_BORROWING;
+        } catch (e) {
+          //
+        }
+      }
+      return { ...item, type: collectibleType, extra };
+    });
+
+  const borrowPoolCollectibles = await Promise.all(mappedContractCollectibles);
 
   dispatch({
     type: ADD_COLLECTIBLES,
@@ -261,3 +270,18 @@ export const setCollectiblePendingTransactionAction = (transaction) => ({
 export const resetCollectiblePendingTransactionAction = () => ({
   type: RESET_COLLECTIBLE_PENDING_TRANSACTION,
 });
+
+export const checkCollectibleTransactionAction = () => async (dispatch, getState) => {
+  const { collectibles: { pendingTransaction } } = getState();
+  const transactionHash = get(pendingTransaction, 'transactionHash');
+  if (isEmpty(transactionHash)) return;
+  const transaction = await window.web3.eth
+    .getTransactionReceipt(transactionHash)
+    .catch(() => ({}));
+  if (transaction !== null) {
+    dispatch(loadCollectiblesAction());
+    dispatch(resetCollectiblePendingTransactionAction());
+    return;
+  }
+  setTimeout(() => dispatch(checkCollectibleTransactionAction()), 1000);
+};

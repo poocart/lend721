@@ -1,5 +1,8 @@
 import isEmpty from 'lodash/isEmpty';
 
+// actions
+import { checkCollectibleTransactionAction } from './collectiblesActions';
+
 // constants
 import {
   SET_CONNECTED_ACCOUNT,
@@ -27,6 +30,7 @@ export const setConnectedAccountAction = (address, networkId) => async (dispatch
     payload: { address, networkId },
   });
   if (isEmpty(address)) return;
+  dispatch(checkCollectibleTransactionAction());
   try {
     const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
     const accountBalance = await ERC20Contract.methods.balanceOf(address).call();

@@ -32,8 +32,6 @@ import { connectAccount } from '../services/accounts';
 
 // utils
 import {
-  ACCOUNT_EMPTY_ADDRESS,
-  isCaseInsensitiveMatch,
   filterCollectiblesToBorrow,
   filterLentCollectibles,
   filterOwnedCollectibles,
@@ -42,6 +40,8 @@ import {
   formatLendDuration,
   getLendDurationTitle,
   filterBorrowedCollectibles,
+  isProduction,
+  isEmptyAddress,
 } from '../utils';
 
 // assets
@@ -73,6 +73,23 @@ const Content = styled.div`
 const CardLoadingWrapper = styled.div`
 `;
 
+const LogoWrapper = styled.div`
+  position: relative;
+`;
+
+const LogoLabel = styled.div`
+  border: 3px solid #000;
+  background: #ffcc00;
+  position: absolute;
+  border-radius: 12px;
+  bottom: -5px;
+  padding: 5px 12px;
+  font-size: 10px;
+  color: #000;
+  right: 75px;
+  font-weight: 800;
+`;
+
 const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowersTable) => {
   if (isEmpty(data)) return null;
 
@@ -92,7 +109,7 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
     } = extra;
 
     const isBorrowed = !isEmpty(borrowerAddress)
-      && !isCaseInsensitiveMatch(ACCOUNT_EMPTY_ADDRESS, borrowerAddress);
+      && !isEmptyAddress(borrowerAddress);
 
     const onCancelLendClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
     const onClaimCollateralClick = () => setCollectiblePreviewTransaction(tokenAddress, tokenId);
@@ -256,7 +273,20 @@ const App = ({
   ];
 
   const isConnected = !isEmpty(connectedAccount.address);
-  const isConnectedRinkeby = connectedAccount.networkId === 4;
+  const isConnectedToRinkeby = connectedAccount.networkId === 4;
+
+  let networkName;
+  switch (connectedAccount.networkId) {
+    case 1:
+      networkName = 'Ethereum mainnet';
+      break;
+    case 4:
+      networkName = 'Rinkeby testnet';
+      break;
+    default:
+      networkName = 'unknown network';
+      break;
+  }
 
   const defaultActiveTabIndex = isConnected ? 0 : 3;
 
@@ -268,7 +298,10 @@ const App = ({
   return (
     <Page>
       <Content>
-        <Logo src={lend721Logo} />
+        <LogoWrapper>
+          <Logo src={lend721Logo} />
+          <LogoLabel>BETA VERSION</LogoLabel>
+        </LogoWrapper>
         {appError && (
           <Flash variant="warning" style={{ marginTop: 40 }}>
             <strong>Great Scott!</strong>
@@ -281,17 +314,19 @@ const App = ({
             &nbsp;Seems like you are on browser that does not support web3.<br />
           </Flash>
         )}
-        {!isConnectedRinkeby && (
-          <Flash variant="danger" style={{ marginTop: 40, marginBottom: 20 }}>
-            <strong>We&apos;re testing!</strong>
-            &nbsp;Seems like you are connected, but not on Rinkeby.<br />
-          </Flash>
-        )}
         {isConnected && (
           <>
-            <Subtitle>Account address: <strong>{connectedAccountAddress || 'Not connected'}</strong></Subtitle>
-            <small style={{ marginTop: 15 }}><u>Note: Data shown from Rinkeby testnet</u></small>
+            <Subtitle>
+              Account address: <strong>{connectedAccountAddress || 'Not connected'}</strong>
+            </Subtitle>
+            <small style={{ marginTop: 15 }}><u>Connected to: {networkName}</u></small>
           </>
+        )}
+        {!isProduction && !isConnectedToRinkeby && (
+          <Flash variant="warning" style={{ marginTop: 40, marginBottom: 20 }}>
+            <strong>This is test environment!</strong>
+            &nbsp;Seems like you are connected, but not on Rinkeby.<br />
+          </Flash>
         )}
         {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
         <Tabs marginTop={40} defaultActiveTabIndex={defaultActiveTabIndex} data={tabs} />

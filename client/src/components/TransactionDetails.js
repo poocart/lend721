@@ -16,7 +16,11 @@ import {
 import isEmpty from 'lodash/isEmpty';
 
 // utils
-import { truncateHexString } from '../utils';
+import {
+  getEtherscanHostname,
+  truncateHexString,
+} from '../utils';
+
 
 const renderAddressRow = (title, address, url) => (
   <Flex
@@ -157,7 +161,7 @@ const TransactionDetails = ({
                   fontWeight={100}
                   lineHeight="1.25em"
                   color="primary"
-                  href={`https://rinkeby.etherscan.io/tx/${transactionHash}`}
+                  href={`${getEtherscanHostname()}/tx/${transactionHash}`}
                   target="_blank"
                 >
                   Preview transaction on Etherscan <Icon color="primary" name="Launch" size="1em" />
@@ -165,7 +169,7 @@ const TransactionDetails = ({
               </Box>
             </Flex>
           )}
-          {renderAddressRow('Your account', senderAddress, `https://rinkeby.etherscan.io/address/${senderAddress}`)}
+          {renderAddressRow('Your account', senderAddress, `${getEtherscanHostname()}/address/${senderAddress}`)}
           {tokenName && renderTextRow('Token name', tokenName, 'tokenName')}
           {tokenId && renderTextRow('Token ID', tokenId, 'tokenId')}
           {data && data.map((row) => renderTextRow(row.title, row.render, row.key))}

@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 // utils
-import { pause } from '../utils';
+import {
+  isProduction,
+  pause,
+} from '../utils';
 
 
 const mapFromOpenSea = (data) => data.map(({
@@ -19,8 +22,10 @@ const mapFromOpenSea = (data) => data.map(({
   tokenId,
 }));
 
+const getOpenSeaHostname = () => `https://${isProduction ? 'rinkeby-' : ''}api.opensea.io`;
+
 export const getCollectiblesByAddress = (address, attempt) => {
-  const url = `https://rinkeby-api.opensea.io/api/v1/assets/?owner=${address}&exclude_currencies=true&order_by=listing_date&order_direction=asc`;
+  const url = `${getOpenSeaHostname()}/api/v1/assets/?owner=${address}&exclude_currencies=true&order_by=listing_date&order_direction=asc`;
   return axios.get(url, {
     timeout: 5000,
     headers: {
@@ -39,13 +44,13 @@ export const getCollectiblesByAddress = (address, attempt) => {
 };
 
 export const getCollectibleByTokenData = (tokenAddress, tokenId, attempt) => {
-  const url = `https://rinkeby-api.opensea.io/api/v1/asset/${tokenAddress}/${tokenId}`;
+  const url = `${getOpenSeaHostname()}/api/v1/asset/${tokenAddress}/${tokenId}`;
   return axios.get(url, {
     timeout: 5000,
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'X-API-KEY': 'af952dd5eb0940a9bfc68a1a9ecec4a6',
+      'X-API-KEY': process.env.OPENSEA_API_KEY,
     },
   })
     .then(({ data: asset }) => mapFromOpenSea([asset]))
