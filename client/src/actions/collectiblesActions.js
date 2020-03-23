@@ -8,7 +8,8 @@ import {
 } from '../services/collectibles';
 import {
   LEND_CONTRACT_ADDRESS,
-  PAYABLE_TOKEN_ADDRESS,
+  getPayableTokenAddress,
+  loadLendContract,
 } from '../services/contracts';
 
 // constants
@@ -41,7 +42,6 @@ import {
 // assets
 import erc721Abi from '../../../abi/erc721.json';
 import erc20Abi from '../../../abi/erc20.json';
-import lend721Abi from '../../../abi/lend721.json';
 
 
 const isMatchingCollectible = (
@@ -53,7 +53,7 @@ const isMatchingCollectible = (
 const getCollectibleLendSettings = async (tokenAddress, tokenId) => {
   let settings = {};
   try {
-    const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+    const Lend721Contract = loadLendContract();
     const lendSettings = await Lend721Contract.methods
       .lentERC721List(tokenAddress, tokenId)
       .call();
@@ -90,7 +90,7 @@ export const tryLoadingLenderSettingFromContractAction = (
   } = getState();
   if (!connectedAccountAddress) return;
   try {
-    const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+    const Lend721Contract = loadLendContract();
     const lenderWithToken = await Lend721Contract.methods
       .lendersWithTokens(index)
       .call();
@@ -192,7 +192,7 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
         collectibleType = SET_FOR_LENDING;
       } else if (!isEmpty(extra)) {
         try {
-          const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+          const ERC20Contract = new window.web3.eth.Contract(erc20Abi, getPayableTokenAddress());
           const allowance = await ERC20Contract.methods
             .allowance(connectedAccountAddress, LEND_CONTRACT_ADDRESS)
             .call();

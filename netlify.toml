@@ -6,10 +6,8 @@ command = "yarn next build && yarn next export"
 [build.environment]
 ETHEREUM_NETWORK = "rinkeby"
 CONTRACT_ADDRESS = "0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0"
-PAYABLE_TOKEN_ADDRESS = "0xc3dbf84abb494ce5199d5d4d815b10ec29529ff8"
 
 [context.master.environment]
 PRODUCTION = "true"
 ETHEREUM_NETWORK = "mainnet"
 CONTRACT_ADDRESS = "0xA133541435cAeB964f572132acd8FEAC3Ed1D80B"
-PAYABLE_TOKEN_ADDRESS = "0x6b175474e89094c44da98b954eedeac495271d0f"

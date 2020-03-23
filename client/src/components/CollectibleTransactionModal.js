@@ -30,13 +30,13 @@ import {
 // services
 import {
   LEND_CONTRACT_ADDRESS,
-  PAYABLE_TOKEN_ADDRESS,
+  getPayableTokenAddress,
+  loadLendContract,
 } from '../services/contracts';
 
 // assets
 import erc721Abi from '../../../abi/erc721.json';
 import erc20Abi from '../../../abi/erc20.json';
-import lend721Abi from '../../../abi/lend721.json';
 
 // components
 import Modal from './Modal';
@@ -168,7 +168,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+        const ERC20Contract = new window.web3.eth.Contract(erc20Abi, getPayableTokenAddress());
         // set for approval
         const result = await ERC20Contract.methods
           .approve(LEND_CONTRACT_ADDRESS, formatTokenAmount(collateralAmount))
@@ -280,7 +280,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const Lend721Contract = loadLendContract();
         const {
           initialWorth,
           earningGoal,
@@ -347,7 +347,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const Lend721Contract = loadLendContract();
         const result = await Lend721Contract.methods
           .startBorrowing(item.tokenAddress, item.tokenId)
           .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
@@ -373,7 +373,7 @@ const renderModalContent = (
       subtitle = 'Cancel lending and get back your NFT';
       confirmTitle = 'Cancel Lending';
       onConfirm = async () => {
-        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const Lend721Contract = loadLendContract();
 
         const result = await Lend721Contract.methods
           .removeFromLending(item.tokenAddress, item.tokenId)
@@ -442,7 +442,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const Lend721Contract = loadLendContract();
 
         // set for approval
         const result = await Lend721Contract.methods
@@ -491,7 +491,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+        const Lend721Contract = loadLendContract();
         // set for approval
         const result = await Lend721Contract.methods
           .claimBorrowerCollateral(item.tokenAddress, item.tokenId)

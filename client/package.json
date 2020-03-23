@@ -27,6 +27,7 @@
     "redux": "^4.0.5",
     "redux-persist": "^6.0.0",
     "redux-thunk": "^2.3.0",
+    "replace": "^1.1.5",
     "rimble-ui": "^0.11.1",
     "styled-components": "^5.0.1",
     "web3": "^1.2.6"
@@ -36,7 +37,7 @@
     "build": "next build",
     "start": "next start",
     "export": "next export",
-    "deploy": "ARWEAVE=true NODE_ENV=production rm -rf .next && rm -rf out && yarn build && yarn export && arweave deploy-dir out"
+    "deploy": "NODE_ENV=production rm -rf .next && rm -rf out && yarn build && yarn export && yarn replace '/_next/' '_next/' out -r && arweave deploy-dir out"
   },
   "eslintConfig": {
     "extends": "react-app"
