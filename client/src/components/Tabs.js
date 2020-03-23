@@ -18,7 +18,7 @@ const SingleTab = styled.a`
   padding: 15px 25px;
   cursor: pointer;
   font-size: 14px;
-  &, &:visited, &:hover { color: #fff; }
+  &, &:visited, &:hover { color: #fff; text-decoration: none; }
   ${({ disabled }) => disabled ? 'opacity: 0.5;' : '&:hover { opacity: 0.8; }'}
   ${({ active, disabled }) => active && !disabled && `
     opacity: 0.8;
@@ -29,15 +29,28 @@ const SingleTab = styled.a`
   }
 `;
 
-const renderTab = (title, tabIndex, activeTab, setActiveTab) => (
-  <SingleTab
-    active={activeTab === tabIndex}
-    onClick={() => setActiveTab(tabIndex)}
-    key={tabIndex}
-  >
-    {title}
-  </SingleTab>
-);
+const renderTab = (title, tabIndex, activeTab, setActiveTab, link) => {
+  let tabProps;
+  if (link) {
+    tabProps = {
+      target: '_blank',
+      href: link,
+    };
+  } else {
+    tabProps = {
+      onClick: () => setActiveTab(tabIndex),
+    };
+  }
+  return (
+    <SingleTab
+      active={activeTab === tabIndex}
+      key={tabIndex}
+      {...tabProps}
+    >
+      {title}
+    </SingleTab>
+  );
+}
 
 const Tabs = ({
   data,
@@ -54,7 +67,8 @@ const Tabs = ({
   const renderTabs = data.map(({
     title,
     hidden,
-  }, index) => !hidden && renderTab(title, index, activeTab, setActiveTab));
+    link,
+  }, index) => !hidden && renderTab(title, index, activeTab, setActiveTab, link));
 
   return (
     <>

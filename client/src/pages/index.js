@@ -29,6 +29,7 @@ import CollectibleTransactionModal from '../components/CollectibleTransactionMod
 
 // services
 import { connectAccount } from '../services/accounts';
+import { loadLendContract } from '../services/contracts';
 
 // utils
 import {
@@ -224,13 +225,6 @@ const renderCards = (
   />
 );
 
-const renderInstructions = () => (
-  <>
-    <h2>Common sense, Smart Contract, When profit</h2>
-    <p>To be added.</p>
-  </>
-);
-
 const App = ({
   setConnectedAccount,
   loadCollectibles,
@@ -269,7 +263,7 @@ const App = ({
     { title: isMobile ? 'Lent' : 'Your lends', content: renderSettingsTable(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
     { title: isMobile ? 'Borrowed' : 'Your borrows', content: renderSettingsTable(borrowedCollectibles, setCollectiblePreviewTransaction, true), hidden: isEmpty(borrowedCollectibles) },
     { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction) },
-    { title: isMobile ? 'FAQ' : 'How this works?', content: renderInstructions() },
+    { title: isMobile ? 'FAQ' : 'How this works?', link: 'https://medium.com/@deimantasspucys/lend-and-borrow-ethereum-erc-721-tokens-with-lend721-platform-32f1a22905fd' },
   ];
 
   const isConnected = !isEmpty(connectedAccount.address);
@@ -290,7 +284,7 @@ const App = ({
 
   const defaultActiveTabIndex = isConnected ? 0 : 3;
 
-  const unsupportedBrowser = !global.window || isUndefined(window.web3);
+  const unsupportedBrowser = !window || isUndefined(window.web3);
 
   const connectedAccountAddress = connectedAccount.address
     && truncateHexString(connectedAccount.address);
@@ -323,7 +317,7 @@ const App = ({
           </>
         )}
         {!isProduction && !isConnectedToRinkeby && (
-          <Flash variant="warning" style={{ marginTop: 40, marginBottom: 20 }}>
+          <Flash variant="danger" style={{ marginTop: 40, marginBottom: 20 }}>
             <strong>This is test environment!</strong>
             &nbsp;Seems like you are connected, but not on Rinkeby.<br />
           </Flash>

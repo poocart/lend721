@@ -2,9 +2,22 @@ import lend721Abi from '../../../abi/lend721.json';
 
 
 export const LEND_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
-export const PAYABLE_TOKEN_ADDRESS = process.env.PAYABLE_TOKEN_ADDRESS;
+
+let payabaleTokenAddress;
+let lendContract;
 
 export const loadLendContract = async () => {
-  const contract = await new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
-  return Promise.resolve(contract);
+  if (!lendContract) {
+    lendContract = await new window.web3.eth.Contract(lend721Abi, LEND_CONTRACT_ADDRESS);
+  }
+  if (!payabaleTokenAddress) {
+    try {
+      payabaleTokenAddress = await lendContract.methods.acceptedPayTokenAddress().call();
+    } catch (e) {
+      //
+    }
+  }
+  return Promise.resolve(lendContract);
 };
+
+export const getPayableTokenAddress = () => payabaleTokenAddress;

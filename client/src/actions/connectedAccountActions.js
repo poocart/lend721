@@ -10,7 +10,10 @@ import {
 } from '../constants/connectedAccountConstants';
 
 // services
-import { PAYABLE_TOKEN_ADDRESS } from '../services/contracts';
+import {
+  getPayableTokenAddress,
+  loadLendContract,
+} from '../services/contracts';
 
 // assets
 import erc20Abi from '../../../abi/erc20.json';
@@ -32,7 +35,8 @@ export const setConnectedAccountAction = (address, networkId) => async (dispatch
   if (isEmpty(address)) return;
   dispatch(checkCollectibleTransactionAction());
   try {
-    const ERC20Contract = new window.web3.eth.Contract(erc20Abi, PAYABLE_TOKEN_ADDRESS);
+    await loadLendContract();
+    const ERC20Contract = new window.web3.eth.Contract(erc20Abi, getPayableTokenAddress());
     const accountBalance = await ERC20Contract.methods.balanceOf(address).call();
     const accountBalanceFormatted = parseTokenAmount(accountBalance);
     dispatch(setConnectedAccountBalanceAction(accountBalanceFormatted));
