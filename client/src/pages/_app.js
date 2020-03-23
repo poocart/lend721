@@ -55,8 +55,13 @@ class App extends NextApp {
       <Provider store={store}>
         <ThemeProvider theme={customTheme}>
           <Head>
-            <meta name="viewport" content="width=device-width,maximum-scale=1,initial-scale=1" />
+            <meta charSet="utf-8" />
             <title>Lend and borrow ERC-721 NFT on Ethereum | lend721.app</title>
+            <meta name="viewport" content="width=device-width,maximum-scale=1,initial-scale=1" />
+            <meta name="theme-color" content="#000000" />
+            <link rel="icon" href="favicon.ico" />
+            <link rel="apple-touch-icon" href="logo192.png" />
+            <link rel="manifest" href="manifest.json" />
             <link
               href="https://fonts.googleapis.com/css?family=Ubuntu&display=swap"
               rel="stylesheet"
