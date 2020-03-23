@@ -280,7 +280,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = loadLendContract();
+        const Lend721Contract = await loadLendContract();
         const {
           initialWorth,
           earningGoal,
@@ -347,7 +347,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = loadLendContract();
+        const Lend721Contract = await loadLendContract();
         const result = await Lend721Contract.methods
           .startBorrowing(item.tokenAddress, item.tokenId)
           .send({ from: connectedAccountAddress }, (err, hash) => onTransactionResult(
@@ -373,7 +373,7 @@ const renderModalContent = (
       subtitle = 'Cancel lending and get back your NFT';
       confirmTitle = 'Cancel Lending';
       onConfirm = async () => {
-        const Lend721Contract = loadLendContract();
+        const Lend721Contract = await loadLendContract();
 
         const result = await Lend721Contract.methods
           .removeFromLending(item.tokenAddress, item.tokenId)
@@ -442,7 +442,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = loadLendContract();
+        const Lend721Contract = await loadLendContract();
 
         // set for approval
         const result = await Lend721Contract.methods
@@ -491,7 +491,7 @@ const renderModalContent = (
         },
       ];
       onConfirm = async () => {
-        const Lend721Contract = loadLendContract();
+        const Lend721Contract = await loadLendContract();
         // set for approval
         const result = await Lend721Contract.methods
           .claimBorrowerCollateral(item.tokenAddress, item.tokenId)

@@ -53,7 +53,7 @@ const isMatchingCollectible = (
 const getCollectibleLendSettings = async (tokenAddress, tokenId) => {
   let settings = {};
   try {
-    const Lend721Contract = loadLendContract();
+    const Lend721Contract = await loadLendContract();
     const lendSettings = await Lend721Contract.methods
       .lentERC721List(tokenAddress, tokenId)
       .call();
@@ -90,7 +90,7 @@ export const tryLoadingLenderSettingFromContractAction = (
   } = getState();
   if (!connectedAccountAddress) return;
   try {
-    const Lend721Contract = loadLendContract();
+    const Lend721Contract = await loadLendContract();
     const lenderWithToken = await Lend721Contract.methods
       .lendersWithTokens(index)
       .call();
