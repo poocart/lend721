@@ -103,6 +103,8 @@ const renderModalContent = (
         tokenId,
         transactionHash,
       });
+    } else {
+      setLendSettings({});
     }
     // update in reducer
     updateCollectibleData(tokenAddress, tokenId, updatedCollectibleData);

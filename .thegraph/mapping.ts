@@ -3,7 +3,7 @@ import { ERC721ForLendUpdated, ERC721ForLendRemoved, LEND721 } from './generated
 import { ERC721ForLend } from './generated/schema';
 
 export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
-  const entryId = `${event.params.tokenAddress.toHex()}-${event.params.tokenId.toHex()}}`;
+  const entryId = event.params.tokenAddress.toHex() + '-' + event.params.tokenId.toHex();
   let lendEntry = ERC721ForLend.load(entryId);
   if (lendEntry == null) {
     lendEntry = new ERC721ForLend(entryId);
@@ -24,7 +24,7 @@ export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
 }
 
 export function handleERC721ForLendRemoved(event: ERC721ForLendRemoved): void {
-  const entryId = `${event.params.tokenAddress.toHex()}-${event.params.tokenId.toHex()}}`;
+  const entryId = event.params.tokenAddress.toHex() + '-' + event.params.tokenId.toHex();
   let lendEntry = ERC721ForLend.load(entryId);
   if (lendEntry == null) return;
   store.remove('ERC721ForLend', entryId);
