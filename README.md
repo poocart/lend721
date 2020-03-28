@@ -1,4 +1,4 @@
-# ERC-721 lending Smart Contract
+# Ethereum ERC-721 tokens lending platform
 
 ![](https://github.com/poocart/lend721/blob/develop/preview.png)
 
