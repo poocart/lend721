@@ -2,14 +2,22 @@
 
 ![](https://lend721.app/_next/static/images/lend721-d8282a44c13cadab9f4afcb4c42ec800.png)
 
-Current stage: **beta**
-
 ## 💡 Description
 LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
 and gain interest from it. On the other hand it allows to borrow same NFT's that are
 set for lending by paying collateral to LEND721 which handles the lend process.
 
 Current stage: **beta**.
+
+## 🏹 Deployed client dApps on Netlify
+- Mainnet: [https://lend721.app](https://lend721.app)
+- Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
+
+## 🏠 Smart Contract addresses across Ethereum networks
+- Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
+- Rinkeby: [0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0](https://rinkeby.etherscan.io/address/0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0)
+
+`Note: Smart Contract calls are proxied to main Smart Contract so calls destination is the Proxy Smart Contract itself.`
 
 ## ✅ To do
 - [x] Client dApp: show lent data
@@ -26,16 +34,6 @@ Current stage: **beta**.
 - [ ] Show success or error messages on each transaction
 - [ ] Email reminders for borrower or lender
 - [ ] Allow edit lend
-
-## 🏠 Smart Contract addresses across Ethereum networks
-- Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
-- Rinkeby: [0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0](https://rinkeby.etherscan.io/address/0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0)
-
-`Note: Smart Contract calls are proxied to main Smart Contract so calls destination is the Proxy Smart Contract itself.`
-
-## 🏹 Deployed client dApp on Netlify
-- Mainnet: [https://lend721.app](https://lend721.app)
-- Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
 
 ## 🧩 Deploy to The Graph 
 
