@@ -1,6 +1,6 @@
 # ERC-721 lending Smart Contract
 
-![](https://lend721.app/_next/static/images/lend721-d8282a44c13cadab9f4afcb4c42ec800.png)
+![](https://github.com/poocart/lend721/blob/develop/preview.png)
 
 ## 💡 Description
 LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
