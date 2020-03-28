@@ -33,12 +33,21 @@ set for lending by paying collateral to LEND721 which handles the lend process.
 - Mainnet: [https://lend721.app](https://lend721.app)
 - Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
 
+### 🧩 Deploy to The Graph 
+
+`cd .thegraph`
+`yarn subgraph:prepare`
+`yarn subgraph:codegen`
+`yarn subgraph:deploy`
+
+More info – [thegraph.com/docs/deploy-a-subgraph](https://thegraph.com/docs/deploy-a-subgraph).
+
 ### 📐 Deploy dApp on Arweave
 1. Setup [Arweave](https://github.com/ArweaveTeam/arweave-deploy):
 
-- `npm i -g arweave-deploy`
-- `arweave key-create ~/arweave-key.json`
-- `arweave key-save ~/arweave-key.json`
+`npm i -g arweave-deploy`
+`arweave key-create ~/arweave-key.json`
+`arweave key-save ~/arweave-key.json`
 
 2. Get AR tokens from [Arweave team](https://www.arweave.org/get-involved/community).
 3. Deploy  from `client` by running `yarn deploy`.

@@ -35,3 +35,4 @@ client/out
 # .thegraph
 .thegraph/build
 .thegraph/generated
+.thegraph/subgraph.yaml
