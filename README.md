@@ -1,6 +1,6 @@
 # ERC-721 lending Smart Contract
 
-<img src="https://lend721.app/_next/static/images/lend721-d8282a44c13cadab9f4afcb4c42ec800.png" width="200" />
+![](https://lend721.app/_next/static/images/lend721-d8282a44c13cadab9f4afcb4c42ec800.png)
 
 Current stage: **beta**
 
@@ -8,6 +8,8 @@ Current stage: **beta**
 LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
 and gain interest from it. On the other hand it allows to borrow same NFT's that are
 set for lending by paying collateral to LEND721 which handles the lend process.
+
+Current stage: **beta**.
 
 ## ✅ To do
 - [x] Client dApp: show lent data
