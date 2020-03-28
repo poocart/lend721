@@ -2,12 +2,13 @@
   "name": "lend721",
   "version": "0.1.0",
   "scripts": {
-    "subgraph:prepare": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
-    "subgraph:prepare-rinkeby": "mustache config/rinkeby.json subgraph.template.yaml > subgraph.yaml",
-    "subgraph:codegen": "graph codegen",
+    "subgraph:prepare": "mustache config/mainnet.json subgraph.template.yaml > subgraph.mainnet.yaml",
+    "subgraph:prepare-rinkeby": "mustache config/rinkeby.json subgraph.template.yaml > subgraph.rinkeby.yaml",
+    "subgraph:codegen": "graph codegen subgraph.mainnet.yaml",
+    "subgraph:codegen-rinkeby": "graph codegen subgraph.rinkeby.yaml",
     "subgraph:build": "graph build",
-    "subgraph:deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ poocart/lend721",
-    "subgraph:deploy-rinkeby": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ poocart/lend721-rinkeby"
+    "subgraph:deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ poocart/lend721 subgraph.mainnet.yaml",
+    "subgraph:deploy-rinkeby": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ poocart/lend721-rinkeby subgraph.rinkeby.yaml"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.17.1",
