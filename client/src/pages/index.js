@@ -195,6 +195,7 @@ const renderCards = (
   setCollectiblePreviewTransaction,
   inverted,
   pendingTransaction,
+  web3Unavailable,
 ) => (
   <CardsGrid
     data={data}
@@ -202,7 +203,8 @@ const renderCards = (
       ({
         tokenAddress,
         tokenId,
-      }) => isPendingCollectibleTransaction(pendingTransaction, tokenAddress, tokenId)
+      }) => web3Unavailable
+        || isPendingCollectibleTransaction(pendingTransaction, tokenAddress, tokenId)
     }
     renderCardButtonTitle={({ title, tokenAddress, tokenId }) => {
       const isPendingTransaction = isPendingCollectibleTransaction(
@@ -236,6 +238,8 @@ const App = ({
   const [loadingApp, setLoadingApp] = useState(true);
   const [appError, setAppError] = useState(null);
 
+  const unsupportedBrowser = !window || isUndefined(window.web3);
+
   const tryConnectAccount = async (forceEnable) => {
     const { address, networkId } = await connectAccount(forceEnable).catch(() => ({}));
 
@@ -261,10 +265,10 @@ const App = ({
   const borrowCollectibles = collectibles.data && filterCollectiblesToBorrow(collectibles.data);
 
   const tabs = [
-    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction, false, collectibles.pendingTransaction) },
+    { title: isMobile ? 'Owned' : 'Your nifties', content: renderCards(ownedCollectibles, 'Lend your', setCollectiblePreviewTransaction, false, collectibles.pendingTransaction, unsupportedBrowser) },
     { title: isMobile ? 'Lent' : 'Your lends', content: renderSettingsTable(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
     { title: isMobile ? 'Borrowed' : 'Your borrows', content: renderSettingsTable(borrowedCollectibles, setCollectiblePreviewTransaction, true), hidden: isEmpty(borrowedCollectibles) },
-    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction) },
+    { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction, unsupportedBrowser) },
     { title: isMobile ? 'FAQ' : 'How this works?', link: 'https://medium.com/@deimantasspucys/lend-and-borrow-ethereum-erc-721-tokens-with-lend721-platform-32f1a22905fd' },
   ];
 
@@ -286,8 +290,6 @@ const App = ({
 
   const defaultActiveTabIndex = isConnected ? 0 : 3;
 
-  const unsupportedBrowser = !window || isUndefined(window.web3);
-
   const connectedAccountAddress = connectedAccount.address
     && truncateHexString(connectedAccount.address);
 
@@ -306,8 +308,8 @@ const App = ({
         )}
         {unsupportedBrowser && (
           <Flash variant="warning" style={{ marginTop: 40 }}>
-            <strong>Future is near!</strong>
-            &nbsp;Seems like you are on browser that does not support web3.<br />
+            <strong>Oopsy!</strong>
+            &nbsp;Seems like you are on browser that does not support <u>web3</u>.<br />
           </Flash>
         )}
         {isConnected && (
@@ -318,13 +320,13 @@ const App = ({
             <small style={{ marginTop: 15 }}><u>Connected to: {networkName}</u></small>
           </>
         )}
-        {!isProduction && !isConnectedToRinkeby && (
+        {!isProduction && !isConnectedToRinkeby && !unsupportedBrowser && (
           <Flash variant="danger" style={{ marginTop: 40, marginBottom: 20 }}>
             <strong>This is test environment!</strong>
             &nbsp;Seems like you are connected, but not on Rinkeby.<br />
           </Flash>
         )}
-        {!isConnected && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
+        {!isConnected && !unsupportedBrowser && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
         <Tabs marginTop={40} defaultActiveTabIndex={defaultActiveTabIndex} data={tabs} />
       </Content>
       <CollectibleTransactionModal />
@@ -336,7 +338,7 @@ App.propTypes = {
   setConnectedAccount: PropTypes.func,
   loadCollectibles: PropTypes.func,
   setCollectiblePreviewTransaction: PropTypes.func,
-  loadLenderSettingFromContract: PropTypes.func,
+  loadLenderBorrowedCollectibles: PropTypes.func,
   collectibles: PropTypes.shape({
     data: PropTypes.array,
     pendingTransaction: PropTypes.object,
