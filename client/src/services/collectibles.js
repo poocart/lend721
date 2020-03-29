@@ -1,10 +1,7 @@
 import axios from 'axios';
 
 // utils
-import {
-  isProduction,
-  pause,
-} from '../utils';
+import { isProduction, pause } from '../utils';
 
 
 const mapFromOpenSea = (data) => data.map(({

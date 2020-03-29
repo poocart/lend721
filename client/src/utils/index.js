@@ -67,7 +67,7 @@ export const findMatchingCollectible = (
   tokenAddress,
   tokenId,
   itemType,
-) => collectibles.find((
+) => !isEmpty(collectibles) && collectibles.find((
   collectible,
 ) => isCaseInsensitiveMatch(collectible.tokenAddress, tokenAddress)
     && isCaseInsensitiveMatch(collectible.tokenId, tokenId)

@@ -7,4 +7,6 @@ type ERC721ForLend @entity {
     lender: Bytes!
     borrower: Bytes!
     lenderClaimedCollateral: Boolean!
+    tokenAddress: Bytes!
+    tokenId: BigInt!
 }
