@@ -1,15 +1,17 @@
 import get from 'lodash/get';
 import isEmpty from 'lodash/isEmpty';
+import { utils } from 'ethers';
 
 // services
 import {
-  getCollectibleByTokenData,
   getCollectiblesByAddress,
+  getCollectibleByTokenData,
 } from '../services/collectibles';
 import {
   LEND_CONTRACT_ADDRESS,
   getPayableTokenAddress,
   loadLendContract,
+  getBorrowerOwnedEntriesOfLender,
 } from '../services/contracts';
 
 // constants
@@ -81,53 +83,40 @@ const getCollectibleLendSettings = async (tokenAddress, tokenId) => {
   return settings;
 };
 
-export const tryLoadingLenderSettingFromContractAction = (
-  index = 0,
-) => async (dispatch, getState) => {
+export const loadLenderBorrowedCollectiblesAction = () => async (dispatch, getState) => {
   const {
     connectedAccount: { address: connectedAccountAddress },
     collectibles: { data: collectibles },
   } = getState();
   if (!connectedAccountAddress) return;
-  try {
-    const Lend721Contract = await loadLendContract();
-    const lenderWithToken = await Lend721Contract.methods
-      .lendersWithTokens(index)
-      .call();
-    if (!isEmpty(lenderWithToken)) {
-      // there might be more
-      dispatch(tryLoadingLenderSettingFromContractAction(index + 1));
-      const existingItem = findMatchingCollectible(
-        collectibles,
-        lenderWithToken.tokenAddress,
-        lenderWithToken.tokenId,
+  const lenderCollectibles = await getBorrowerOwnedEntriesOfLender(connectedAccountAddress);
+  lenderCollectibles.map(async (lendEntry) => {
+    const existingItem = findMatchingCollectible(
+      collectibles,
+      lendEntry.tokenAddress,
+      lendEntry.tokenId,
+    );
+    if (!isEmpty(existingItem)) return;
+    if (isCaseInsensitiveMatch(lendEntry.lender, connectedAccountAddress)) {
+      const collectibleMetaData = await getCollectibleByTokenData(
+        lendEntry.tokenAddress,
+        lendEntry.tokenId,
       );
-      if (isEmpty(existingItem)
-        && isCaseInsensitiveMatch(lenderWithToken.lenderAddress, connectedAccountAddress)) {
-        const lendSettings = await getCollectibleLendSettings(
-          lenderWithToken.tokenAddress,
-          lenderWithToken.tokenId,
-        );
-        if (!isEmpty(lendSettings)) {
-          const collectibleMetaData = await getCollectibleByTokenData(
-            lenderWithToken.tokenAddress,
-            lenderWithToken.tokenId,
-          );
-          const itemInLend = {
-            ...collectibleMetaData,
-            type: LENT_AND_NOT_OWNED,
-            extra: lendSettings,
-          };
-          dispatch({
-            type: ADD_COLLECTIBLES,
-            payload: [itemInLend],
-          });
-        }
-      }
+      const itemInLend = {
+        ...collectibleMetaData,
+        type: LENT_AND_NOT_OWNED,
+        extra: {
+          ...lendEntry,
+          earningGoal: parseTokenAmount(utils.bigNumberify(lendEntry.earningGoal)),
+          initialWorth: parseTokenAmount(utils.bigNumberify(lendEntry.initialWorth)),
+        },
+      };
+      dispatch({
+        type: ADD_COLLECTIBLES,
+        payload: [itemInLend],
+      });
     }
-  } catch (e) {
-    //
-  }
+  });
 };
 
 export const loadCollectiblesAction = () => async (dispatch, getState) => {
@@ -212,8 +201,6 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
     type: ADD_COLLECTIBLES,
     payload: borrowPoolCollectibles,
   });
-
-  dispatch(tryLoadingLenderSettingFromContractAction(0));
 };
 
 export const updateCollectibleDataAction = (

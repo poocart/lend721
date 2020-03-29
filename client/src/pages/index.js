@@ -18,6 +18,7 @@ import moment from 'moment';
 import { setConnectedAccountAction } from '../actions/connectedAccountActions';
 import {
   loadCollectiblesAction,
+  loadLenderBorrowedCollectiblesAction,
   setCollectiblePreviewTransactionAction,
 } from '../actions/collectiblesActions';
 
@@ -29,7 +30,6 @@ import CollectibleTransactionModal from '../components/CollectibleTransactionMod
 
 // services
 import { connectAccount } from '../services/accounts';
-import { loadLendContract } from '../services/contracts';
 
 // utils
 import {
@@ -231,6 +231,7 @@ const App = ({
   collectibles,
   connectedAccount,
   setCollectiblePreviewTransaction,
+  loadLenderBorrowedCollectibles,
 }) => {
   const [loadingApp, setLoadingApp] = useState(true);
   const [appError, setAppError] = useState(null);
@@ -240,6 +241,7 @@ const App = ({
 
     setConnectedAccount(address, networkId);
     loadCollectibles();
+    loadLenderBorrowedCollectibles();
 
     setLoadingApp(false);
   };
@@ -334,6 +336,7 @@ App.propTypes = {
   setConnectedAccount: PropTypes.func,
   loadCollectibles: PropTypes.func,
   setCollectiblePreviewTransaction: PropTypes.func,
+  loadLenderSettingFromContract: PropTypes.func,
   collectibles: PropTypes.shape({
     data: PropTypes.array,
     pendingTransaction: PropTypes.object,
@@ -356,6 +359,7 @@ const mapDispatchToProps = {
   loadCollectibles: loadCollectiblesAction,
   setConnectedAccount: setConnectedAccountAction,
   setCollectiblePreviewTransaction: setCollectiblePreviewTransactionAction,
+  loadLenderBorrowedCollectibles: loadLenderBorrowedCollectiblesAction,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);

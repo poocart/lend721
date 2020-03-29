@@ -6,8 +6,10 @@ command = "yarn next build && yarn next export"
 [build.environment]
 ETHEREUM_NETWORK = "rinkeby"
 CONTRACT_ADDRESS = "0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0"
+THEGRAPH_ID = "QmPhWfDpcuPHCSUw17cSNB1j5QUei1q6mGuu4kdQD36VZP"
 
 [context.master.environment]
 PRODUCTION = "true"
 ETHEREUM_NETWORK = "mainnet"
 CONTRACT_ADDRESS = "0xA133541435cAeB964f572132acd8FEAC3Ed1D80B"
+THEGRAPH_ID = "QmfCorBVnhQVMAetXuzJH42MMd8PFwfbADN2JjPZqHqEQr"

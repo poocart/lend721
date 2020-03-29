@@ -1,0 +1,12 @@
+type ERC721ForLend @entity {
+    id: ID!
+    durationHours: BigInt!
+    initialWorth: BigInt!
+    earningGoal: BigInt!
+    borrowedAtTimestamp: BigInt!
+    lender: Bytes!
+    borrower: Bytes!
+    lenderClaimedCollateral: Boolean!
+    tokenAddress: Bytes!
+    tokenId: BigInt!
+}

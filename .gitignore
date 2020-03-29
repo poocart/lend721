@@ -35,3 +35,6 @@ client/out
 # .thegraph
 .thegraph/build
 .thegraph/generated
+.thegraph/subgraph.yaml
+.thegraph/subgraph.rinkeby.yaml
+.thegraph/subgraph.mainnet.yaml

@@ -103,6 +103,8 @@ const renderModalContent = (
         tokenId,
         transactionHash,
       });
+    } else {
+      setLendSettings({});
     }
     // update in reducer
     updateCollectibleData(tokenAddress, tokenId, updatedCollectibleData);
@@ -327,9 +329,9 @@ const renderModalContent = (
         || lendSettings.earningGoal <= 0;
       break;
     case APPROVED_FOR_BORROWING:
-      title = `Start borrowing ${item.title}`;
+      title = `Begin borrowing ${item.title}`;
       subtitle = 'Transfer selected ERC-721 token from lend Smart Contract to your wallet while locking previously approved collateral in DAI';
-      confirmTitle = 'Start Borrowing';
+      confirmTitle = 'Borrow';
       infoMessage = 'Friendly reminder: Make sure you stop borrowing before deadline ends or you might lose your collateral!';
       modalData = [
         {

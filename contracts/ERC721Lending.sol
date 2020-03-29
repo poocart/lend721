@@ -102,6 +102,22 @@ contract ERC721Lending is Initializable {
     return hoursPassed > durationHours;
   }
 
+  function removeFromLendersWithTokens(address tokenAddress, uint256 tokenId) internal {
+    // reset lenders to sent token mapping, swap with last element to fill the gap
+    uint totalCount = lendersWithTokens.length;
+    if (totalCount > 1) {
+      for (uint i = 0; i<totalCount; i++) {
+        ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
+        if (tokenEntry.lenderAddress == msg.sender && tokenEntry.tokenAddress == tokenAddress && tokenEntry.tokenId == tokenId) {
+          lendersWithTokens[i] = lendersWithTokens[totalCount-1]; // insert last from array
+        }
+      }
+      lendersWithTokens.length--;
+    } else {
+      delete lendersWithTokens[0];
+    }
+  }
+
   function removeFromLending(address tokenAddress, uint256 tokenId) public {
     require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot cancel if in lend');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Lending: Cannot cancel if not owned');
@@ -110,14 +126,7 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false); // reset lend mappings
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
-    uint totalCount = lendersWithTokens.length;
-    for (uint i = 0; i<totalCount; i++) {
-      ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
-      if (tokenEntry.lenderAddress == msg.sender && tokenEntry.tokenAddress == tokenAddress && tokenEntry.tokenId == tokenId) {
-        lendersWithTokens[i] = lendersWithTokens[totalCount-1]; // insert last from array
-      }
-    }
-    lendersWithTokens.length--;
+    removeFromLendersWithTokens(tokenAddress, tokenId);
 
     emit ERC721ForLendRemoved(tokenAddress, tokenId);
   }
@@ -132,14 +141,7 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral = true;
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
-    uint totalCount = lendersWithTokens.length;
-    for (uint i = 0; i<totalCount; i++) {
-      ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
-      if (tokenEntry.lenderAddress == msg.sender && tokenEntry.tokenAddress == tokenAddress && tokenEntry.tokenId == tokenId) {
-        lendersWithTokens[i] = lendersWithTokens[totalCount-1]; // insert last from array
-      }
-    }
-    lendersWithTokens.length--;
+    removeFromLendersWithTokens(tokenAddress, tokenId);
 
     uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
     IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);

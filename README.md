@@ -1,8 +1,27 @@
-# ERC-721 lending Smart Contract
+# Ethereum ERC-721 tokens lending platform
 
-Current stage: **beta**
+![](https://github.com/poocart/lend721/blob/develop/preview.png)
 
-### ✅ To do
+## 💡 Description
+LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
+and gain interest from it. On the other hand it allows to borrow same NFT's that are
+set for lending by paying collateral to LEND721 which handles the lend process.
+
+Current stage: **beta**.
+
+## 🏹 Deployed client dApps on Netlify
+- Mainnet: [https://lend721.app](https://lend721.app)
+- Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
+
+## 🏠 Smart Contract addresses across Ethereum networks
+- Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
+- Rinkeby: [0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0](https://rinkeby.etherscan.io/address/0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0)
+
+```
+Note: Smart Contract calls are proxied to main Smart Contract so calls destination is the Proxy Smart Contract itself.
+```
+
+## ✅ To do
 - [x] Client dApp: show lent data
 - [x] Client dApp: show borrowed data
 - [x] Client dApp borrower: call DAI approve method
@@ -18,27 +37,25 @@ Current stage: **beta**
 - [ ] Email reminders for borrower or lender
 - [ ] Allow edit lend
 
-### 💡 Description
-LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
-and gain interest from it. On the other hand it allows to borrow same NFT's that are
-set for lending by paying collateral to LEND721 which handles the lend process.
+## 🧩 Deploy to The Graph 
 
-### 🏠 Smart Contract addresses across Ethereum networks
-- Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
-- Rinkeby: [0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0](https://rinkeby.etherscan.io/address/0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0)
+Run from `.thegraph`:
+```
+yarn subgraph:prepare
+yarn subgraph:codegen
+yarn subgraph:deploy
+```
 
-`Note: Smart Contract calls are proxied to main Smart Contract so calls destination is the Proxy Smart Contract itself.`
+More info – [thegraph.com/docs/deploy-a-subgraph](https://thegraph.com/docs/deploy-a-subgraph).
 
-### 🏹 Deployed client dApp on Netlify
-- Mainnet: [https://lend721.app](https://lend721.app)
-- Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
+## 📐 Deploy dApp on Arweave
 
-### 📐 Deploy dApp on Arweave
-1. Setup [Arweave](https://github.com/ArweaveTeam/arweave-deploy):
+Setup [Arweave](https://github.com/ArweaveTeam/arweave-deploy):
 
-- `npm i -g arweave-deploy`
-- `arweave key-create ~/arweave-key.json`
-- `arweave key-save ~/arweave-key.json`
+```
+npm i -g arweave-deploy
+arweave key-create ~/arweave-key.json
+arweave key-save ~/arweave-key.json
+```
 
-2. Get AR tokens from [Arweave team](https://www.arweave.org/get-involved/community).
-3. Deploy  from `client` by running `yarn deploy`.
+Get AR tokens from [Arweave team](https://www.arweave.org/get-involved/community) and deploy  from `client` by running `yarn deploy`.
