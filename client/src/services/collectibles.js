@@ -11,13 +11,18 @@ const mapFromOpenSea = (data) => data.map(({
   image_url: image,
   image_preview_url: preview,
   asset_contract: { address: tokenAddress },
-}) => ({
-  title: name || 'Unnamed ERC-721',
-  backgroundColor,
-  image: image || preview,
-  tokenAddress,
-  tokenId,
-}));
+  traits = [],
+}) => {
+  const attributes = traits.map(({ trait_type: title, value }) => ({ title, value }));
+  return {
+    title: name || 'Unnamed ERC-721',
+    backgroundColor,
+    image: image || preview,
+    tokenAddress,
+    tokenId,
+    attributes,
+  };
+});
 
 const getOpenSeaHostname = () => `https://${isProduction ? '' : 'rinkeby-'}api.opensea.io`;
 
