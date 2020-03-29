@@ -1,5 +1,6 @@
 import get from 'lodash/get';
 import isEmpty from 'lodash/isEmpty';
+import { utils } from 'ethers';
 
 // services
 import {
@@ -104,7 +105,11 @@ export const loadLenderBorrowedCollectiblesAction = () => async (dispatch, getSt
       const itemInLend = {
         ...collectibleMetaData,
         type: LENT_AND_NOT_OWNED,
-        extra: lendEntry,
+        extra: {
+          ...lendEntry,
+          earningGoal: parseTokenAmount(utils.bigNumberify(lendEntry.earningGoal)),
+          initialWorth: parseTokenAmount(utils.bigNumberify(lendEntry.initialWorth)),
+        },
       };
       dispatch({
         type: ADD_COLLECTIBLES,

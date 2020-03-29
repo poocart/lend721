@@ -47,11 +47,13 @@ export const getBorrowerOwnedEntriesOfLender = (lenderAddress, attempt) => {
           lender
           borrower
           lenderClaimedCollateral
+          tokenAddress
+          tokenId
         }
       }
     `,
   })
-    .then(({ data }) => get(data, 'data.erc721ForLends'))
+    .then(({ data }) => get(data, 'data.erc721ForLends', []))
     .catch(async () => {
       if (attempt === 5) return [];
       await pause(attempt);
