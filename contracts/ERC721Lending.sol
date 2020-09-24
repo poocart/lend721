@@ -5,8 +5,8 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.so
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/IERC721.sol";
 
 contract Sablier {
-  function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime) public returns(uint256);
-  function cancelStream(uint256 streamId) public returns (bool);
+  function createSalary(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime) public returns(uint256);
+  function cancelSalary(uint256 salaryId) public returns (bool);
 }
 
 contract ERC721Lending is Initializable {
@@ -20,7 +20,7 @@ contract ERC721Lending is Initializable {
     address lender;
     address borrower;
     bool lenderClaimedCollateral;
-    uint256 sablierStreamId;
+    uint256 sablierSalaryId;
   }
 
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
@@ -78,23 +78,23 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].borrower = msg.sender;
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = now;
 
-    // check if sablier address set and setup stream
+    // check if sablier address set and setup salary
     if (sablierContractAddress != address(0)) {
-      address _streamRecipient = lentERC721List[tokenAddress][tokenId].lender;
-      uint256 _streamStartTime = now + 60;
-      uint256 _streamStopTime = _streamStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
-      uint256 _actualStreamAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
+      address _salaryRecipient = lentERC721List[tokenAddress][tokenId].lender;
+      uint256 _salaryStartTime = now + 60;
+      uint256 _salaryStopTime = _salaryStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
+      uint256 _actualSalaryAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
 
       // per Sablier docs – deposit amount must be divided by the time delta
       // and then the remainder subtracted from the initial deposit number
-      uint256 _timeDelta = _streamStopTime - _streamStartTime;
-      uint256 _streamAmount = _actualStreamAmount - (_actualStreamAmount % _timeDelta);
+      uint256 _timeDelta = _salaryStopTime - _salaryStartTime;
+      uint256 _salaryAmount = _actualSalaryAmount - (_actualSalaryAmount % _timeDelta);
 
-      _payToken.approve(sablierContractAddress, _streamAmount);
+      _payToken.approve(sablierContractAddress, _salaryAmount);
 
-      // the stream id is needed later to withdraw from or cancel the stream
-      uint256 _sablierStreamId = Sablier(sablierContractAddress).createStream(_streamRecipient, _streamAmount, acceptedPayTokenAddress, _streamStartTime, _streamStopTime);
-      lentERC721List[tokenAddress][tokenId].sablierStreamId = _sablierStreamId;
+      // the salary id is needed later to withdraw from or cancel the salary
+      uint256 _sablierSalaryId = Sablier(sablierContractAddress).createSalary(_salaryRecipient, _salaryAmount, acceptedPayTokenAddress, _salaryStartTime, _salaryStopTime);
+      lentERC721List[tokenAddress][tokenId].sablierSalaryId = _sablierSalaryId;
     }
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
@@ -115,11 +115,11 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].borrower = address(0);
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
 
-    uint256 _sablierStreamId = lentERC721List[tokenAddress][tokenId].sablierStreamId;
-    if (_sablierStreamId != 0) {
-      // cancel stream to lender if sablier stream exists
-      Sablier(sablierContractAddress).cancelStream(_sablierStreamId);
-      lentERC721List[tokenAddress][tokenId].sablierStreamId = 0;
+    uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
+    if (_sablierSalaryId != 0) {
+      // cancel salary to lender if sablier salary exists
+      Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
+      lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
     } else {
       // send lender his interest
       address _lender = lentERC721List[tokenAddress][tokenId].lender;
@@ -180,12 +180,12 @@ contract ERC721Lending is Initializable {
 
     lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral = true;
 
-    uint256 _sablierStreamId = lentERC721List[tokenAddress][tokenId].sablierStreamId;
-    if (_sablierStreamId != 0) {
-      // if stream exists cancel stream and send only initial worth collateral amount
+    uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
+    if (_sablierSalaryId != 0) {
+      // if salary exists cancel salary and send only initial worth collateral amount
       IERC20(acceptedPayTokenAddress).transfer(msg.sender, lentERC721List[tokenAddress][tokenId].initialWorth);
-      Sablier(sablierContractAddress).cancelStream(_sablierStreamId);
-      lentERC721List[tokenAddress][tokenId].sablierStreamId = 0;
+      Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
+      lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
     } else {
       // send interest and collateral sum amount
       uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
