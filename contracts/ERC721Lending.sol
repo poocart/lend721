@@ -4,6 +4,11 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/IERC721.sol";
 
+contract Sablier {
+  function createStream(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime) public returns(uint256);
+  function cancelStream(uint256 streamId) public returns (bool);
+}
+
 contract ERC721Lending is Initializable {
   address public acceptedPayTokenAddress;
 
@@ -15,6 +20,7 @@ contract ERC721Lending is Initializable {
     address lender;
     address borrower;
     bool lenderClaimedCollateral;
+    uint256 sablierStreamId;
   }
 
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
@@ -30,8 +36,15 @@ contract ERC721Lending is Initializable {
   event ERC721ForLendUpdated(address tokenAddress, uint256 tokenId);
   event ERC721ForLendRemoved(address tokenAddress, uint256 tokenId);
 
-  function initialize(address tokenAddress) initializer public {
+  address public sablierContractAddress;
+
+  function initialize(address tokenAddress) public initializer {
     acceptedPayTokenAddress = tokenAddress;
+  }
+
+  function setSablierContractAddress(address contractAddress) public {
+    require(sablierContractAddress == address(0), 'Sablier contract address already set');
+    sablierContractAddress = contractAddress;
   }
 
   function setLendSettings(address tokenAddress, uint256 tokenId, uint256 durationHours, uint256 initialWorth, uint256 earningGoal) public {
@@ -44,7 +57,7 @@ contract ERC721Lending is Initializable {
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
 
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false);
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false, 0);
     lendersWithTokens.push(ERC721TokenEntry(msg.sender, tokenAddress, tokenId));
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
@@ -55,14 +68,34 @@ contract ERC721Lending is Initializable {
     require(lentERC721List[tokenAddress][tokenId].earningGoal > 0, 'Borrowing: Lender did not set earning goal yet');
     require(lentERC721List[tokenAddress][tokenId].initialWorth > 0, 'Borrowing: Lender did not set initial worth yet');
 
+    IERC20 _payToken = IERC20(acceptedPayTokenAddress);
     uint256 _requiredSum = calculateLendSum(tokenAddress, tokenId);
-    uint256 _allowedCollateral = IERC20(acceptedPayTokenAddress).allowance(msg.sender, address(this));
+    uint256 _allowedCollateral = _payToken.allowance(msg.sender, address(this));
     require(_allowedCollateral >= _requiredSum, 'Borrowing: Not enough collateral received');
 
     IERC20(acceptedPayTokenAddress).transferFrom(msg.sender, address(this), _requiredSum);
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
     lentERC721List[tokenAddress][tokenId].borrower = msg.sender;
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = now;
+
+    // check if sablier address set and setup stream
+    if (sablierContractAddress != address(0)) {
+      address _streamRecipient = lentERC721List[tokenAddress][tokenId].lender;
+      uint256 _streamStartTime = now + 60;
+      uint256 _streamStopTime = _streamStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
+      uint256 _actualStreamAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
+
+      // per Sablier docs – deposit amount must be divided by the time delta
+      // and then the remainder subtracted from the initial deposit number
+      uint256 _timeDelta = _streamStopTime - _streamStartTime;
+      uint256 _streamAmount = _actualStreamAmount - (_actualStreamAmount % _timeDelta);
+
+      _payToken.approve(sablierContractAddress, _streamAmount);
+
+      // the stream id is needed later to withdraw from or cancel the stream
+      uint256 _sablierStreamId = Sablier(sablierContractAddress).createStream(_streamRecipient, _streamAmount, acceptedPayTokenAddress, _streamStartTime, _streamStopTime);
+      lentERC721List[tokenAddress][tokenId].sablierStreamId = _sablierStreamId;
+    }
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
@@ -82,10 +115,17 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].borrower = address(0);
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
 
-    address _lender = lentERC721List[tokenAddress][tokenId].lender;
-    uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
-
-    IERC20(acceptedPayTokenAddress).transfer(_lender, _earningGoal);
+    uint256 _sablierStreamId = lentERC721List[tokenAddress][tokenId].sablierStreamId;
+    if (_sablierStreamId != 0) {
+      // cancel stream to lender if sablier stream exists
+      Sablier(sablierContractAddress).cancelStream(_sablierStreamId);
+      lentERC721List[tokenAddress][tokenId].sablierStreamId = 0;
+    } else {
+      // send lender his interest
+      address _lender = lentERC721List[tokenAddress][tokenId].lender;
+      uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
+      IERC20(acceptedPayTokenAddress).transfer(_lender, _earningGoal);
+    }
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
@@ -123,7 +163,7 @@ contract ERC721Lending is Initializable {
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Lending: Cannot cancel if not owned');
     require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Lending: Collateral claimed');
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false); // reset lend mappings
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0); // reset lend mappings
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     removeFromLendersWithTokens(tokenAddress, tokenId);
@@ -140,11 +180,20 @@ contract ERC721Lending is Initializable {
 
     lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral = true;
 
+    uint256 _sablierStreamId = lentERC721List[tokenAddress][tokenId].sablierStreamId;
+    if (_sablierStreamId != 0) {
+      // if stream exists cancel stream and send only initial worth collateral amount
+      IERC20(acceptedPayTokenAddress).transfer(msg.sender, lentERC721List[tokenAddress][tokenId].initialWorth);
+      Sablier(sablierContractAddress).cancelStream(_sablierStreamId);
+      lentERC721List[tokenAddress][tokenId].sablierStreamId = 0;
+    } else {
+      // send interest and collateral sum amount
+      uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
+      IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
+    }
+
     // reset lenders to sent token mapping, swap with last element to fill the gap
     removeFromLendersWithTokens(tokenAddress, tokenId);
-
-    uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
-    IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
