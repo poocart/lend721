@@ -30,7 +30,7 @@ export const loadLendContract = async () => {
 export const getPayableTokenAddress = () => payabaleTokenAddress;
 
 export const getBorrowerOwnedEntriesOfLender = (lenderAddress, attempt) => {
-  const url = `https://api.thegraph.com/subgraphs/id/${process.env.THEGRAPH_ID}`;
+  const url = `https://api.thegraph.com/subgraphs/name/${process.env.SUBGRAPH_NAME}`;
   return axios.post(url, {
     timeout: 5000,
     query: `

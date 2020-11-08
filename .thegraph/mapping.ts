@@ -19,6 +19,7 @@ export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
   lendEntry.lender = contractEntry.value4;
   lendEntry.borrower = contractEntry.value5;
   lendEntry.lenderClaimedCollateral = contractEntry.value6;
+  lendEntry.sablierStreamId = contractEntry.value7;
   lendEntry.tokenAddress = event.params.tokenAddress;
   lendEntry.tokenId = event.params.tokenId;
 
