@@ -29,14 +29,14 @@ describe('ERC721Lending', () => {
   const lendEarningGoal = parseDecimalValue(0.3);
 
   // default mocks
-  const successfullyLendToken = async () => {
+  const successfullyLendToken = async (customDurationHours) => {
     await erc721.approve(lendingContract.address, lendTokenId, { from: lender });
-    await lendingContract.setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender });
+    await lendingContract.createLending(erc721.address, lendTokenId, customDurationHours || lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender });
   };
   const successfullyBorrowToken = async () => {
     const collateralAmount = lendInitialWorth.add(lendEarningGoal);
     await erc20.approve(lendingContract.address, collateralAmount, { from: borrower });
-    await lendingContract.startBorrowing(erc721.address, lendTokenId, { from: borrower })
+    await lendingContract.startBorrowing(lender, erc721.address, lendTokenId, { from: borrower })
   };
 
   beforeEach(async () => {
@@ -63,11 +63,11 @@ describe('ERC721Lending', () => {
     expect(parseDecimalValue(borrowerTokenBalance).eq(existingBorrowerTokenBalance)).toBe(true);
   });
 
-  describe('setLendSettings()', () => {
+  describe('createLending()', () => {
 
     it('should throw empty duration message', async () => {
       const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, 0, lendInitialWorth, lendEarningGoal, { from: lender })
+        .createLending(erc721.address, lendTokenId, 0, lendInitialWorth, lendEarningGoal, { from: lender })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
@@ -76,7 +76,7 @@ describe('ERC721Lending', () => {
 
     it('should throw zero initial worth message', async () => {
       const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, lendDurationHours, 0, lendEarningGoal, { from: lender })
+        .createLending(erc721.address, lendTokenId, lendDurationHours, 0, lendEarningGoal, { from: lender })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
@@ -85,7 +85,7 @@ describe('ERC721Lending', () => {
 
     it('should throw zero earning goal message', async () => {
       const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, 0, { from: lender })
+        .createLending(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, 0, { from: lender })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
@@ -94,11 +94,11 @@ describe('ERC721Lending', () => {
 
     it('should throw token not approved message', async () => {
       const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
+        .createLending(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
-      expect(result.reason).toBe('Lending: Token usage by smart contract needs to be approved');
+      expect(result.reason).toBe('ERC721: transfer caller is not owner nor approved');
     });
 
     it('should lend successfully and take token', async () => {
@@ -106,7 +106,7 @@ describe('ERC721Lending', () => {
       const approvedAddress = await erc721.getApproved(lendTokenId);
       const ownerOfToken = await erc721.ownerOf(lendTokenId);
       const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
+        .createLending(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
         .catch((error) => error);
       const ownerOfTokenAfterLend = await erc721.ownerOf(lendTokenId);
       // const savedLendSettings = await lendingContract.lentERC721List(erc721.address, lendTokenId);
@@ -145,7 +145,7 @@ describe('ERC721Lending', () => {
 
     it('should throw not enough collateral message on zero collateral', async () => {
       const result = await lendingContract
-        .startBorrowing(erc721.address, lendTokenId, { from: borrower })
+        .startBorrowing(lender, erc721.address, lendTokenId, { from: borrower })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
@@ -155,7 +155,7 @@ describe('ERC721Lending', () => {
     it('should throw not enough collateral message on not enough collateral', async () => {
       await erc20.approve(lendingContract.address, parseDecimalValue(2.9));
       const result = await lendingContract
-        .startBorrowing(erc721.address, lendTokenId, { from: borrower })
+        .startBorrowing(lender, erc721.address, lendTokenId, { from: borrower })
         .catch((error) => error);
 
       expect(result).toBeInstanceOf(Error);
@@ -167,7 +167,7 @@ describe('ERC721Lending', () => {
       await erc20.approve(lendingContract.address, collateralAmount, { from: borrower });
       const borrowerAllowanceForLendingContract = await erc20.allowance(borrower, lendingContract.address);
       const result = await lendingContract
-        .startBorrowing(erc721.address, lendTokenId, { from: borrower })
+        .startBorrowing(lender, erc721.address, lendTokenId, { from: borrower })
         .catch((error) => error);
       const ownerOfToken = await erc721.ownerOf(lendTokenId);
 
@@ -177,20 +177,20 @@ describe('ERC721Lending', () => {
     });
   });
 
-  describe('claimBorrowerCollateral()', () => {
-    beforeEach(async () => {
-      await successfullyLendToken();
-      await successfullyBorrowToken();
-    });
-
-    it('should successfully claim collateral', async () => {
-      // const collateralAmount = lendInitialWorth.add(lendEarningGoal);
-      // await erc20.approve(lendingContract.address, collateralAmount, { from: borrower });
-      // const borrowerAllowanceForLendingContract = await erc20.allowance(borrower, lendingContract.address);
-      const result = await lendingContract
-        .claimBorrowerCollateral(erc721.address, lendTokenId, { from: lender })
-        .catch((error) => error);
-      console.log('result: ', result);
-    });
-  });
+  // describe('claimBorrowerCollateral()', () => {
+  //   beforeEach(async () => {
+  //     await successfullyLendToken();
+  //     await successfullyBorrowToken();
+  //   });
+  //
+  //   it('should successfully claim collateral', async () => {
+  //     const collateralAmount = lendInitialWorth.add(lendEarningGoal);
+  //     // await erc20.approve(lendingContract.address, collateralAmount, { from: borrower });
+  //     // const borrowerAllowanceForLendingContract = await erc20.allowance(borrower, lendingContract.address);
+  //     const result = await lendingContract
+  //       .claimBorrowerCollateral(erc721.address, lendTokenId, { from: lender })
+  //       .catch((error) => error);
+  //     console.log('result: ', result);
+  //   });
+  // });
 });

@@ -8,6 +8,7 @@ dataSources:
     source:
       address: '{{address}}'
       abi: LEND721
+      startBlock: 5979000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -18,8 +19,8 @@ dataSources:
         - name: LEND721
           file: ./../abi/lend721.json
       eventHandlers:
-        - event: ERC721ForLendUpdated(address,uint256)
+        - event: ERC721ForLendUpdated(address,address,uint256)
           handler: handleERC721ForLendUpdated
-        - event: ERC721ForLendRemoved(address,uint256)
+        - event: ERC721ForLendRemoved(address,address,uint256)
           handler: handleERC721ForLendRemoved
       file: ./mapping.ts

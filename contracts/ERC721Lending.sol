@@ -23,6 +23,7 @@ contract ERC721Lending is Initializable {
     uint256 sablierSalaryId;
   }
 
+  // IMPORTANT: deprecated!
   mapping(address => mapping(uint256 => ERC721ForLend)) public lentERC721List;
 
   struct ERC721TokenEntry {
@@ -33,13 +34,44 @@ contract ERC721Lending is Initializable {
 
   ERC721TokenEntry[] public lendersWithTokens;
 
-  event ERC721ForLendUpdated(address tokenAddress, uint256 tokenId);
-  event ERC721ForLendRemoved(address tokenAddress, uint256 tokenId);
+  event ERC721ForLendUpdated(address lenderAddress, address tokenAddress, uint256 tokenId);
+  event ERC721ForLendRemoved(address lenderAddress, address tokenAddress, uint256 tokenId);
 
   address public sablierContractAddress;
 
+  // token address -> token id -> owner (lender) address -> lending details
+  mapping(address => mapping(uint256 => mapping(address => ERC721ForLend))) public lendingPool;
+
+  // Note: version helper for migrations
+  uint256 migrateVersion;
+
   function initialize(address tokenAddress) public initializer {
     acceptedPayTokenAddress = tokenAddress;
+  }
+
+  // single migration
+  function migrateERC721ListToLendingPool() public {
+    require(migrateVersion == 0, 'Migration: This version already migrated');
+
+    uint totalCount = lendersWithTokens.length;
+    if (totalCount > 1) {
+      for (uint i = 0; i<totalCount; i++) {
+        ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
+        ERC721ForLend memory existingEntry = lentERC721List[tokenEntry.tokenAddress][tokenEntry.tokenId];
+        lendingPool[tokenEntry.tokenAddress][tokenEntry.tokenId][existingEntry.lender] = ERC721ForLend(
+          existingEntry.durationHours,
+          existingEntry.initialWorth,
+          existingEntry.earningGoal,
+          existingEntry.borrowedAtTimestamp,
+          existingEntry.lender,
+          existingEntry.borrower,
+          existingEntry.lenderClaimedCollateral,
+          existingEntry.sablierSalaryId
+        );
+      }
+    }
+
+    migrateVersion = 1; // version up
   }
 
   function setSablierContractAddress(address contractAddress) public {
@@ -47,43 +79,43 @@ contract ERC721Lending is Initializable {
     sablierContractAddress = contractAddress;
   }
 
-  function setLendSettings(address tokenAddress, uint256 tokenId, uint256 durationHours, uint256 initialWorth, uint256 earningGoal) public {
+  function createLending(address tokenAddress, uint256 tokenId, uint256 durationHours, uint256 initialWorth, uint256 earningGoal) public {
+    // assuming token transfer is approved
     require(initialWorth > 0, 'Lending: Initial token worth must be above 0');
     require(earningGoal > 0, 'Lending: Earning goal must be above 0');
     require(durationHours > 0, 'Lending: Lending duration must be above 0');
-    require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot change settings, token already lent');
-    require(IERC721(tokenAddress).getApproved(tokenId) == address(this), 'Lending: Token usage by smart contract needs to be approved');
-    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Lending: Collateral already claimed');
+    require(lendingPool[tokenAddress][tokenId][msg.sender].borrower == address(0), 'Lending: Cannot change settings, token already lent');
+    require(lendingPool[tokenAddress][tokenId][msg.sender].lenderClaimedCollateral == false, 'Lending: Collateral already claimed');
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
 
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false, 0);
+    lendingPool[tokenAddress][tokenId][msg.sender] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false, 0);
     lendersWithTokens.push(ERC721TokenEntry(msg.sender, tokenAddress, tokenId));
 
-    emit ERC721ForLendUpdated(tokenAddress, tokenId);
+    emit ERC721ForLendUpdated(msg.sender, tokenAddress, tokenId);
   }
 
-  function startBorrowing(address tokenAddress, uint256 tokenId) public {
-    require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Borrowing: Already lent');
-    require(lentERC721List[tokenAddress][tokenId].earningGoal > 0, 'Borrowing: Lender did not set earning goal yet');
-    require(lentERC721List[tokenAddress][tokenId].initialWorth > 0, 'Borrowing: Lender did not set initial worth yet');
+  function startBorrowing(address lenderAddress, address tokenAddress, uint256 tokenId) public {
+    require(lendingPool[tokenAddress][tokenId][lenderAddress].borrower == address(0), 'Borrowing: Already lent');
+    require(lendingPool[tokenAddress][tokenId][lenderAddress].earningGoal > 0, 'Borrowing: Lender did not set earning goal yet');
+    require(lendingPool[tokenAddress][tokenId][lenderAddress].initialWorth > 0, 'Borrowing: Lender did not set initial worth yet');
 
     IERC20 _payToken = IERC20(acceptedPayTokenAddress);
-    uint256 _requiredSum = calculateLendSum(tokenAddress, tokenId);
+    uint256 _requiredSum = calculateLendSum(lenderAddress, tokenAddress, tokenId);
     uint256 _allowedCollateral = _payToken.allowance(msg.sender, address(this));
     require(_allowedCollateral >= _requiredSum, 'Borrowing: Not enough collateral received');
 
     IERC20(acceptedPayTokenAddress).transferFrom(msg.sender, address(this), _requiredSum);
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
-    lentERC721List[tokenAddress][tokenId].borrower = msg.sender;
-    lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = now;
+    lendingPool[tokenAddress][tokenId][lenderAddress].borrower = msg.sender;
+    lendingPool[tokenAddress][tokenId][lenderAddress].borrowedAtTimestamp = now;
 
     // check if sablier address set and setup salary
     if (sablierContractAddress != address(0)) {
-      address _salaryRecipient = lentERC721List[tokenAddress][tokenId].lender;
+      address _salaryRecipient = lenderAddress;
       uint256 _salaryStartTime = now + 60;
-      uint256 _salaryStopTime = _salaryStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
-      uint256 _actualSalaryAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
+      uint256 _salaryStopTime = _salaryStartTime + (lendingPool[tokenAddress][tokenId][lenderAddress].durationHours * 3600);
+      uint256 _actualSalaryAmount = lendingPool[tokenAddress][tokenId][lenderAddress].earningGoal;
 
       // per Sablier docs – deposit amount must be divided by the time delta
       // and then the remainder subtracted from the initial deposit number
@@ -94,45 +126,44 @@ contract ERC721Lending is Initializable {
 
       // the salary id is needed later to withdraw from or cancel the salary
       uint256 _sablierSalaryId = Sablier(sablierContractAddress).createSalary(_salaryRecipient, _salaryAmount, acceptedPayTokenAddress, _salaryStartTime, _salaryStopTime);
-      lentERC721List[tokenAddress][tokenId].sablierSalaryId = _sablierSalaryId;
+      lendingPool[tokenAddress][tokenId][lenderAddress].sablierSalaryId = _sablierSalaryId;
     }
 
-    emit ERC721ForLendUpdated(tokenAddress, tokenId);
+    emit ERC721ForLendUpdated(lenderAddress, tokenAddress, tokenId);
   }
 
-  function stopBorrowing(address tokenAddress, uint256 tokenId) public {
-    address _borrower = lentERC721List[tokenAddress][tokenId].borrower;
+  function stopBorrowing(address lenderAddress, address tokenAddress, uint256 tokenId) public {
+    // assuming token transfer is approved
+    address _borrower = lendingPool[tokenAddress][tokenId][lenderAddress].borrower;
     require(_borrower == msg.sender, 'Borrowing: Can be stopped only by active borrower');
-    require(IERC721(tokenAddress).getApproved(tokenId) == address(this), 'Borrowing: Token transfer needs to be approved');
-    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Borrowing: Too late, lender claimed collateral');
+    require(lendingPool[tokenAddress][tokenId][lenderAddress].lenderClaimedCollateral == false, 'Borrowing: Too late, lender claimed collateral');
 
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
 
-    uint256 _initialWorth = lentERC721List[tokenAddress][tokenId].initialWorth;
+    uint256 _initialWorth = lendingPool[tokenAddress][tokenId][lenderAddress].initialWorth;
 
     IERC20(acceptedPayTokenAddress).transfer(_borrower, _initialWorth);
 
-    lentERC721List[tokenAddress][tokenId].borrower = address(0);
-    lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = 0;
+    lendingPool[tokenAddress][tokenId][lenderAddress].borrower = address(0);
+    lendingPool[tokenAddress][tokenId][lenderAddress].borrowedAtTimestamp = 0;
 
-    uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
+    uint256 _sablierSalaryId = lendingPool[tokenAddress][tokenId][lenderAddress].sablierSalaryId;
     if (_sablierSalaryId != 0) {
       // cancel salary to lender if sablier salary exists
       Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
-      lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
+      lendingPool[tokenAddress][tokenId][lenderAddress].sablierSalaryId = 0;
     } else {
       // send lender his interest
-      address _lender = lentERC721List[tokenAddress][tokenId].lender;
-      uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
-      IERC20(acceptedPayTokenAddress).transfer(_lender, _earningGoal);
+      uint256 _earningGoal = lendingPool[tokenAddress][tokenId][lenderAddress].earningGoal;
+      IERC20(acceptedPayTokenAddress).transfer(lenderAddress, _earningGoal);
     }
 
-    emit ERC721ForLendUpdated(tokenAddress, tokenId);
+    emit ERC721ForLendUpdated(lenderAddress, tokenAddress, tokenId);
   }
 
-  function calculateLendSum(address tokenAddress, uint256 tokenId) public view returns(uint256) {
-    uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
-    uint256 _initialWorth = lentERC721List[tokenAddress][tokenId].initialWorth;
+  function calculateLendSum(address lenderAddress, address tokenAddress, uint256 tokenId) public view returns(uint256) {
+    uint256 _earningGoal = lendingPool[tokenAddress][tokenId][lenderAddress].earningGoal;
+    uint256 _initialWorth = lendingPool[tokenAddress][tokenId][lenderAddress].initialWorth;
     return _initialWorth + _earningGoal;
   }
 
@@ -159,42 +190,45 @@ contract ERC721Lending is Initializable {
   }
 
   function removeFromLending(address tokenAddress, uint256 tokenId) public {
-    require(lentERC721List[tokenAddress][tokenId].borrower == address(0), 'Lending: Cannot cancel if in lend');
-    require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Lending: Cannot cancel if not owned');
-    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Lending: Collateral claimed');
+    require(lendingPool[tokenAddress][tokenId][msg.sender].lender == msg.sender, 'Claim: Cannot claim not owned lend');
+
+    require(lendingPool[tokenAddress][tokenId][msg.sender].borrower == address(0), 'Lending: Cannot cancel if lent');
+    require(lendingPool[tokenAddress][tokenId][msg.sender].lenderClaimedCollateral == false, 'Lending: Collateral claimed');
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0); // reset lend mappings
+    lendingPool[tokenAddress][tokenId][msg.sender] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0); // reset details
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     removeFromLendersWithTokens(tokenAddress, tokenId);
 
-    emit ERC721ForLendRemoved(tokenAddress, tokenId);
+    emit ERC721ForLendRemoved(msg.sender, tokenAddress, tokenId);
   }
 
   function claimBorrowerCollateral(address tokenAddress, uint256 tokenId) public {
-    uint256 _borrowedAtTimestamp = lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp;
-    uint256 _durationHours = lentERC721List[tokenAddress][tokenId].durationHours;
-    require(isDurationExpired(_borrowedAtTimestamp, _durationHours), 'Claim: Cannot claim before lend expired');
-    require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Claim: Cannot claim not owned lend');
-    require(lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral == false, 'Claim: Already claimed');
+    require(lendingPool[tokenAddress][tokenId][msg.sender].lender == msg.sender, 'Claim: Cannot claim not owned lend');
 
-    lentERC721List[tokenAddress][tokenId].lenderClaimedCollateral = true;
+    uint256 _borrowedAtTimestamp = lendingPool[tokenAddress][tokenId][msg.sender].borrowedAtTimestamp;
+    uint256 _durationHours = lendingPool[tokenAddress][tokenId][msg.sender].durationHours;
+    require(isDurationExpired(_borrowedAtTimestamp, _durationHours), 'Claim: Cannot claim before lending expired');
 
-    uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
+    require(lendingPool[tokenAddress][tokenId][msg.sender].lenderClaimedCollateral == false, 'Claim: Already claimed');
+
+    lendingPool[tokenAddress][tokenId][msg.sender].lenderClaimedCollateral = true;
+
+    uint256 _sablierSalaryId = lendingPool[tokenAddress][tokenId][msg.sender].sablierSalaryId;
     if (_sablierSalaryId != 0) {
       // if salary exists cancel salary and send only initial worth collateral amount
-      IERC20(acceptedPayTokenAddress).transfer(msg.sender, lentERC721List[tokenAddress][tokenId].initialWorth);
+      IERC20(acceptedPayTokenAddress).transfer(msg.sender, lendingPool[tokenAddress][tokenId][msg.sender].initialWorth);
       Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
-      lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
+      lendingPool[tokenAddress][tokenId][msg.sender].sablierSalaryId = 0;
     } else {
       // send interest and collateral sum amount
-      uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
+      uint256 _collateralSum = calculateLendSum(msg.sender, tokenAddress, tokenId);
       IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
     }
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     removeFromLendersWithTokens(tokenAddress, tokenId);
 
-    emit ERC721ForLendUpdated(tokenAddress, tokenId);
+    emit ERC721ForLendUpdated(msg.sender, tokenAddress, tokenId);
   }
 }
