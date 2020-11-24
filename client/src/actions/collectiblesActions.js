@@ -171,14 +171,17 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
       let collectibleType = AVAILABLE_FOR_BORROW;
       let extra = {};
       let lenderAddress;
+      let borrowerAddress;
       try {
         extra = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
-        ({ lenderAddress } = extra);
+        ({ lenderAddress, borrowerAddress } = extra);
       } catch (e) {
         //
       }
       if (lenderAddress && isCaseInsensitiveMatch(lenderAddress, connectedAccountAddress)) {
-        collectibleType = SET_FOR_LENDING;
+        collectibleType = !isEmpty(borrowerAddress) && !isEmptyAddress(borrowerAddress)
+          ? LENT_AND_NOT_OWNED
+          : SET_FOR_LENDING;
       } else if (!isEmpty(extra)) {
         try {
           const ERC20Contract = new window.web3.eth.Contract(erc20Abi, getPayableTokenAddress());
