@@ -15,12 +15,17 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - ERC721ForLend
+        - ERC721ForLendV2
       abis:
         - name: LEND721
           file: ./../abi/lend721.json
       eventHandlers:
-        - event: ERC721ForLendUpdated(address,address,uint256)
+        - event: ERC721ForLendUpdated(address,uint256)
           handler: handleERC721ForLendUpdated
-        - event: ERC721ForLendRemoved(address,address,uint256)
+        - event: ERC721ForLendRemoved(address,uint256)
           handler: handleERC721ForLendRemoved
+        - event: ERC721ForLendUpdatedV2(address,address,uint256)
+          handler: handleERC721ForLendUpdatedV2
+        - event: ERC721ForLendRemovedV2(address,address,uint256)
+          handler: handleERC721ForLendRemovedV2
       file: ./mapping.ts
