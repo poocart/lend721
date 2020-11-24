@@ -44,8 +44,8 @@ export const getBorrowerOwnedEntriesOfLender = (lenderAddress, attempt) => {
           initialWorth
           earningGoal
           borrowedAtTimestamp
-          lender
-          borrower
+          lenderAddress: lender
+          borrowerAddress: borrower
           lenderClaimedCollateral
           tokenAddress
           tokenId
