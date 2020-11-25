@@ -38,6 +38,7 @@ export const getBorrowerOwnedEntriesOfLender = (lenderAddress, attempt) => {
         erc721ForLends(where: {
           lender: "${lenderAddress}"
           borrower_not: "${EMPTY_ADDRESS}"
+          lenderClaimedCollateral: false
         }) {
           id
           durationHours

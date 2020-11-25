@@ -52,7 +52,10 @@ export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(
   APPROVED_FOR_BORROWING,
 ].includes(type));
 
-export const filterLentCollectibles = (collectibles) => collectibles.filter(({ type }) => [
+export const filterLentCollectibles = (collectibles) => collectibles.filter(({
+  type,
+  extra,
+}) => !extra.lenderClaimedCollateral && [
   SET_FOR_LENDING,
   LENT_AND_NOT_OWNED,
 ].includes(type));
