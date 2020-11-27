@@ -107,6 +107,7 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
       borrowedAtTimestamp,
       borrowerAddress,
       lenderAddress,
+      lenderClaimedCollateral,
     } = extra;
 
     const isBorrowed = !isEmpty(borrowerAddress)
@@ -161,10 +162,22 @@ const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowers
               )}
             </>
           )}
-          {isBorrowersTable && (
+          {isBorrowersTable && !lenderClaimedCollateral && (
             <Button.Outline size="small" onClick={onStopBorrowingClick}>
               <Icon color="primary" name="Close" size="1em" mr={1} /> Stop Borrowing
             </Button.Outline>
+          )}
+          {isBorrowersTable && !!lenderClaimedCollateral && (
+            <>
+              <p>
+                We&apos;re sorry, but NFT had to be<br />
+                returned by {borrowingDeadlineDate.format('YYYY-MM-DD [at] HH:mm')}&nbsp;<br />
+                and lender already claimed your collateral.
+              </p>
+              <Button.Outline mb={3} size="small" onClick={onStopBorrowingClick}>
+                <Icon color="primary" name="Close" size="1em" mr={1} /> Stop Borrowing
+              </Button.Outline>
+            </>
           )}
         </td>
       </tr>
