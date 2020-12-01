@@ -6,6 +6,7 @@ import { utils } from 'ethers';
 import {
   getCollectiblesByAddress,
   getCollectibleByTokenData,
+  filterValidCollectibles,
 } from '../services/collectibles';
 import {
   LEND_CONTRACT_ADDRESS,
@@ -128,7 +129,9 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
     const fetchedAccountCollectibles = await getCollectiblesByAddress(connectedAccountAddress)
       .catch(() => []);
 
-    accountCollectibles = await Promise.all(fetchedAccountCollectibles.map(async (item) => {
+    const validAccountCollectibles = await filterValidCollectibles(fetchedAccountCollectibles);
+
+    accountCollectibles = await Promise.all(validAccountCollectibles.map(async (item) => {
       let approvedAddress;
       let borrowerAddress;
       let lenderAddress;
@@ -136,6 +139,7 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
       let extra = {};
       try {
         const lendSettings = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
+
         if (!isEmpty(lendSettings)) {
           extra = lendSettings;
           ({ borrowerAddress, lenderAddress } = lendSettings);
@@ -166,12 +170,15 @@ export const loadCollectiblesAction = () => async (dispatch, getState) => {
   const fetchedContractCollectibles = await getCollectiblesByAddress(LEND_CONTRACT_ADDRESS)
     .catch(() => []);
 
-  const mappedContractCollectibles = fetchedContractCollectibles
+  const validContractCollectibles = await filterValidCollectibles(fetchedContractCollectibles);
+
+  const mappedContractCollectibles = validContractCollectibles
     .map(async (item) => {
       let collectibleType = AVAILABLE_FOR_BORROW;
       let extra = {};
       let lenderAddress;
       let borrowerAddress;
+
       try {
         extra = await getCollectibleLendSettings(item.tokenAddress, item.tokenId);
         ({ lenderAddress, borrowerAddress } = extra);
