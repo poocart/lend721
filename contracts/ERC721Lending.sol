@@ -265,4 +265,9 @@ contract ERC721Lending is Initializable {
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
+
+  function isValidNFT(address tokenAddress, uint256 tokenId) public view returns(bool) {
+    // no owner is most likely burnt NFT
+    return IERC721(tokenAddress).ownerOf(tokenId) != address(0);
+  }
 }
