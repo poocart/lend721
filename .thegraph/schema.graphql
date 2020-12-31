@@ -9,19 +9,5 @@ type ERC721ForLend @entity {
     lenderClaimedCollateral: Boolean!
     tokenAddress: Bytes!
     tokenId: BigInt!
-    sablierStreamId: BigInt!
-}
-
-type ERC721ForLendV2 @entity {
-    id: ID!
-    durationHours: BigInt!
-    initialWorth: BigInt!
-    earningGoal: BigInt!
-    borrowedAtTimestamp: BigInt!
-    lender: Bytes!
-    borrower: Bytes!
-    lenderClaimedCollateral: Boolean!
-    tokenAddress: Bytes!
-    tokenId: BigInt!
-    sablierStreamId: BigInt!
+    sablierStreamId: BigInt
 }
