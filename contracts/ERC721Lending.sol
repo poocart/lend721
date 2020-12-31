@@ -185,19 +185,22 @@ contract ERC721Lending is Initializable {
           uint256 _streamSalaryAmount,
           ,
           uint256 _streamStartTime,
-          ,
+          uint256 _streamStopTime,
           ,
           uint256 _streamRatePerSecond
         ) = Sablier(sablierContractAddress).getSalary(_sablierSalaryId);
 
-        uint256 _balanceNotStreamed = _streamSalaryAmount - (now - _streamStartTime) * _streamRatePerSecond;
+        int256 _balanceNotStreamed = 0;
+        if (now < _streamStopTime) {
+          _balanceNotStreamed = int256(_streamSalaryAmount) - (int256(now) - int256(_streamStartTime)) * int256(_streamRatePerSecond);
+        }
 
         // cancel salary to lender if sablier salary exists
         Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
         lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
 
         if (_balanceNotStreamed > 0) {
-          IERC20(acceptedPayTokenAddress).transfer(_borrower, _balanceNotStreamed);
+          IERC20(acceptedPayTokenAddress).transfer(_borrower, uint256(_balanceNotStreamed));
         }
       } else {
         // send lender his interest
