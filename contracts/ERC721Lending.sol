@@ -8,6 +8,16 @@ import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
 contract Sablier {
   function createSalary(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime) public returns(uint256);
   function cancelSalary(uint256 salaryId) public returns (bool);
+  function getSalary(uint256 salaryId) public view returns (
+    address company,
+    address employee,
+    uint256 salary,
+    address tokenAddress,
+    uint256 startTime,
+    uint256 stopTime,
+    uint256 remainingBalance,
+    uint256 rate
+  );
 }
 
 contract ERC721Lending is Initializable {
@@ -168,9 +178,27 @@ contract ERC721Lending is Initializable {
 
       uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
       if (_sablierSalaryId != 0) {
+//        // get balance that is not streamed during period, it will be returned to borrower
+        (
+          ,
+          ,
+          uint256 _streamSalaryAmount,
+          ,
+          uint256 _streamStartTime,
+          ,
+          ,
+          uint256 _streamRatePerSecond
+        ) = Sablier(sablierContractAddress).getSalary(_sablierSalaryId);
+
+        uint256 _balanceNotStreamed = _streamSalaryAmount - (now - _streamStartTime) * _streamRatePerSecond;
+
         // cancel salary to lender if sablier salary exists
         Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
         lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
+
+        if (_balanceNotStreamed > 0) {
+          IERC20(acceptedPayTokenAddress).transfer(_borrower, _balanceNotStreamed);
+        }
       } else {
         // send lender his interest
         uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
@@ -238,6 +266,7 @@ contract ERC721Lending is Initializable {
   }
 
   function claimBorrowerCollateral(address tokenAddress, uint256 tokenId) public {
+    require(lentERC721List[tokenAddress][tokenId].borrower != address(0), 'Claim: Cannot claim if stopped');
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Claim: Cannot claim not owned lend');
 
     uint256 _borrowedAtTimestamp = lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp;
