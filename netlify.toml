@@ -4,7 +4,7 @@ publish = "out/"
 command = "yarn next build && yarn next export"
 
 [build.environment]
-ETHEREUM_NETWORK = "BSC"
+ETHEREUM_NETWORK = "94"
 CONTRACT_ADDRESS = "0x0263BbFDff5F04C8323681205B3a608d5359Ff66"
 SUBGRAPH_NAME = "poocart/lend721"
 
