@@ -109,4 +109,4 @@ export const pause = (
 
 export const isProduction = !!process.env.PRODUCTION;
 
-export const getEtherscanHostname = () => ` https://${isProduction ? '' : 'rinkeby.'}etherscan.io`;
+export const getEtherscanHostname = () => ` https://${isProduction ? '' : 'testnet.'}.bscscan.com`;

@@ -282,7 +282,7 @@ const App = ({
     { title: isMobile ? 'Lent' : 'Your lends', content: renderSettingsTable(lentCollectibles, setCollectiblePreviewTransaction), hidden: isEmpty(lentCollectibles) },
     { title: isMobile ? 'Borrowed' : 'Your borrows', content: renderSettingsTable(borrowedCollectibles, setCollectiblePreviewTransaction, true), hidden: isEmpty(borrowedCollectibles) },
     { title: isMobile ? 'Borrow' : 'Borrow ERC-721 from pool', content: renderCards(borrowCollectibles, 'Borrow this', setCollectiblePreviewTransaction, true, collectibles.pendingTransaction, unsupportedBrowser) },
-    { title: isMobile ? 'FAQ' : 'How this works?', link: 'https://medium.com/@deimantasspucys/lend-and-borrow-ethereum-erc-721-tokens-with-lend721-platform-32f1a22905fd' },
+
   ];
 
   const isConnected = !isEmpty(connectedAccount.address);

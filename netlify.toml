@@ -4,12 +4,7 @@ publish = "out/"
 command = "yarn next build && yarn next export"
 
 [build.environment]
-ETHEREUM_NETWORK = "rinkeby"
-CONTRACT_ADDRESS = "0x1762fd547d6C286a174dD62b6A6fACFAc064A0A0"
+ETHEREUM_NETWORK = "BSC"
+CONTRACT_ADDRESS = "0x0263BbFDff5F04C8323681205B3a608d5359Ff66"
 SUBGRAPH_NAME = "poocart/lend721"
 
-[context.master.environment]
-PRODUCTION = "true"
-ETHEREUM_NETWORK = "mainnet"
-CONTRACT_ADDRESS = "0xA133541435cAeB964f572132acd8FEAC3Ed1D80B"
-SUBGRAPH_NAME = "poocart/lend721-rinkeby"

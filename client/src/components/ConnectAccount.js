@@ -16,7 +16,7 @@ const ConnectAccount = ({ onClick }) => (
     {!isProduction && (
       <small style={{ marginTop: 25 }}>
         Note: Seems you&apos;re in test environment,
-        make sure you&apos;re connected to Rinkeby testnet
+        make sure you&apos;re connected to Binance Smart Chain testnet
       </small>
     )}
   </>
