@@ -297,7 +297,7 @@ const App = ({
       networkName = 'Rinkeby testnet';
       break;
     default:
-      networkName = 'unknown network';
+      networkName = 'Binance smart chain network';
       break;
   }
 
@@ -311,7 +311,7 @@ const App = ({
       <Content>
         <LogoWrapper>
           <Logo src={lend721Logo} />
-          <LogoLabel>BETA VERSION</LogoLabel>
+         
         </LogoWrapper>
         {appError && (
           <Flash variant="warning" style={{ marginTop: 40 }}>
@@ -336,7 +336,7 @@ const App = ({
         {!isProduction && !isConnectedToRinkeby && !unsupportedBrowser && (
           <Flash variant="danger" style={{ marginTop: 40, marginBottom: 20 }}>
             <strong>This is test environment!</strong>
-            &nbsp;Seems like you are connected, but not on Rinkeby.<br />
+            &nbsp;Seems like you are connected, but not on Binance smart chain network.<br />
           </Flash>
         )}
         {!isConnected && !unsupportedBrowser && <ConnectAccount onClick={() => tryConnectAccount(true)} />}
