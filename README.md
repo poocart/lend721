@@ -12,6 +12,7 @@ Current stage: **beta**.
 ## 🏹 Deployed client dApps on Netlify
 - Mainnet: [https://lend721.app](https://lend721.app)
 - Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
+- Binance smart chain: [https://dreamy-bell-874b39.netlify.app/](https://dreamy-bell-874b39.netlify.app/)
 
 ## 🏠 Smart Contract addresses across Ethereum networks
 - Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
