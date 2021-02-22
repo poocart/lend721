@@ -24,40 +24,21 @@ Note: Smart Contract calls are proxied to main Smart Contract so calls destinati
 ```
 
 ## ✅ To do
-- [x] Client dApp: show lent data
-- [x] Client dApp: show borrowed data
-- [x] Client dApp borrower: call DAI approve method
-- [x] Client dApp borrower: call borrow method
-- [x] Client dApp lender: call ERC-721 approve method
-- [x] Client dApp lender: call ERC-721 lend set method
-- [x] Set duration for lendings
-- [x] Deploy Smart Contract to mainnet
-- [x] Verify Smart Contract in mainnet Etherscan
-- [x] Put lenders addresses with lent tokens somwehere outside of smart contract (UX improvement) – (note: solved with thegraph.com)
+- [ ] Client dApp: show lent data
+- [ ] Client dApp: show borrowed data
+- [ ] Client dApp borrower: call DAI approve method
+- [ ] Client dApp borrower: call borrow method
+- [ ] Client dApp lender: call ERC-721 approve method
+- [ ] Client dApp lender: call ERC-721 lend set method
+- [ ] Set duration for lendings
+- [ ] Deploy Smart Contract to mainnet
+- [ ] Verify Smart Contract in mainnet Etherscan
+- [ ] Put lenders addresses with lent tokens somwehere outside of smart contract (UX improvement) – (note: solved with thegraph.com)
 - [ ] Show message when collateral was already taken on expired lend
 - [ ] Show success or error messages on each transaction
 - [ ] Email reminders for borrower or lender
 - [ ] Allow edit lend
 
-## 🧩 Deploy to The Graph 
 
-Run from `.thegraph`:
-```
-yarn subgraph:prepare
-yarn subgraph:codegen
-yarn subgraph:deploy
-```
 
-More info – [thegraph.com/docs/deploy-a-subgraph](https://thegraph.com/docs/deploy-a-subgraph).
 
-## 📐 Deploy dApp on Arweave
-
-Setup [Arweave](https://github.com/ArweaveTeam/arweave-deploy):
-
-```
-npm i -g arweave-deploy
-arweave key-create ~/arweave-key.json
-arweave key-save ~/arweave-key.json
-```
-
-Get AR tokens from [Arweave team](https://www.arweave.org/get-involved/community) and deploy  from `client` by running `yarn deploy`.
