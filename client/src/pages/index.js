@@ -91,6 +91,11 @@ const LogoLabel = styled.div`
   font-weight: 800;
 `;
 
+const ContentLink = styled.a`
+  font-weight: 800;
+  &, &:visited, &:hover { color: inherit; }
+`;
+
 const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowersTable) => {
   if (isEmpty(data)) return null;
 
@@ -240,6 +245,8 @@ const renderCards = (
   />
 );
 
+const nftFinanceSaleAlertStorageKey = '@lend721:nftFinaneSaleAlertHidden';
+
 const App = ({
   setConnectedAccount,
   loadCollectibles,
@@ -248,8 +255,16 @@ const App = ({
   setCollectiblePreviewTransaction,
   loadLenderBorrowedCollectibles,
 }) => {
+  const nftFinanceSaleAlertDismissed = window.localStorage.getItem(nftFinanceSaleAlertStorageKey);
+
   const [loadingApp, setLoadingApp] = useState(true);
   const [appError, setAppError] = useState(null);
+  const [showNftFinanceSaleAlert, setShowNftFinanceSaleAlert] = useState(!nftFinanceSaleAlertDismissed);
+
+  const hideNftFinanceSaleAlert = () => {
+    window.localStorage.setItem(nftFinanceSaleAlertStorageKey, '1');
+    setShowNftFinanceSaleAlert(false);
+  };
 
   const unsupportedBrowser = !window || isUndefined(window.web3);
 
@@ -309,6 +324,14 @@ const App = ({
   return (
     <Page>
       <Content>
+        {!!showNftFinanceSaleAlert && (
+          <Flash variant="success" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              Check <ContentLink href="https://nft.finance/sale" title="NFT.finance sale" target="_blank">NFT.finance</ContentLink> top level domain name sale!
+              <Icon color="primary" name="Close" size="1em" ml={2} style={{ cursor: 'pointer' }} onClick={hideNftFinanceSaleAlert} />
+            </div>
+          </Flash>
+        )}
         <LogoWrapper>
           <Logo src={lend721Logo} />
           <LogoLabel>BETA VERSION</LogoLabel>

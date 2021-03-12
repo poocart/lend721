@@ -4,6 +4,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/Address.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 contract Sablier {
   function createSalary(address recipient, uint256 deposit, address tokenAddress, uint256 startTime, uint256 stopTime) public returns(uint256);
@@ -32,6 +33,7 @@ contract ERC721Lending is Initializable {
     address borrower;
     bool lenderClaimedCollateral;
     uint256 sablierSalaryId;
+    uint256 platformFeesPercent;
   }
 
   // V1 mapping
@@ -56,6 +58,8 @@ contract ERC721Lending is Initializable {
   // Note: version helper for migrations
   uint256 migrateVersion;
 
+  address public feesContractAddress;
+
   event ERC721ForLendUpdatedV2(address lenderAddress, address tokenAddress, uint256 tokenId);
   event ERC721ForLendRemovedV2(address lenderAddress, address tokenAddress, uint256 tokenId);
 
@@ -63,34 +67,14 @@ contract ERC721Lending is Initializable {
     acceptedPayTokenAddress = tokenAddress;
   }
 
-  // V1 -> V2 single migration
-  function migrateERC721ListToLendingPool() public {
-    require(migrateVersion == 0, 'Migration: This version already migrated');
-
-    uint totalCount = lendersWithTokens.length;
-    if (totalCount > 1) {
-      for (uint i = 0; i<totalCount; i++) {
-        ERC721TokenEntry memory tokenEntry = lendersWithTokens[i];
-        ERC721ForLend memory existingEntry = lentERC721List[tokenEntry.tokenAddress][tokenEntry.tokenId];
-        lendingPool[tokenEntry.tokenAddress][tokenEntry.tokenId][existingEntry.lender] = ERC721ForLend(
-          existingEntry.durationHours,
-          existingEntry.initialWorth,
-          existingEntry.earningGoal,
-          existingEntry.borrowedAtTimestamp,
-          existingEntry.lender,
-          existingEntry.borrower,
-          existingEntry.lenderClaimedCollateral,
-          existingEntry.sablierSalaryId
-        );
-      }
-    }
-
-    migrateVersion = 1; // version up
-  }
-
   function setSablierContractAddress(address contractAddress) public {
     require(sablierContractAddress == address(0), 'Sablier contract address already set');
     sablierContractAddress = contractAddress;
+  }
+
+  function setFeesContractAddress(address contractAddress) public {
+    require(feesContractAddress == address(0), 'Fees contract address already set');
+    feesContractAddress = contractAddress;
   }
 
   function setLendSettings(address tokenAddress, uint256 tokenId, uint256 durationHours, uint256 initialWorth, uint256 earningGoal) public {
@@ -103,7 +87,7 @@ contract ERC721Lending is Initializable {
     // assuming token transfer is approved
     IERC721(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
 
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false, 0);
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(durationHours, initialWorth, earningGoal, 0, msg.sender, address(0), false, 0, 0);
 
     lendersWithTokens.push(ERC721TokenEntry(msg.sender, tokenAddress, tokenId));
 
@@ -124,10 +108,10 @@ contract ERC721Lending is Initializable {
 
     // check if needs approval as some tokens fail due this
     (bool success,) = tokenAddress.call(abi.encodeWithSignature(
-      "approve(address,uint256)",
-      address(this),
-      tokenId
-    ));
+        "approve(address,uint256)",
+        address(this),
+        tokenId
+      ));
     if (success) {
       IERC721(tokenAddress).approve(address(this), tokenId);
     }
@@ -136,25 +120,8 @@ contract ERC721Lending is Initializable {
     lentERC721List[tokenAddress][tokenId].borrower = msg.sender;
     lentERC721List[tokenAddress][tokenId].borrowedAtTimestamp = now;
 
-    address lenderAddress = lentERC721List[tokenAddress][tokenId].lender;
-
     // check if sablier address set and setup salary
-    if (sablierContractAddress != address(0)) {
-      uint256 _salaryStartTime = now + 60;
-      uint256 _salaryStopTime = _salaryStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
-      uint256 _actualSalaryAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
-
-      // per Sablier docs – deposit amount must be divided by the time delta
-      // and then the remainder subtracted from the initial deposit number
-      uint256 _timeDelta = _salaryStopTime - _salaryStartTime;
-      uint256 _salaryAmount = _actualSalaryAmount - (_actualSalaryAmount % _timeDelta);
-
-      _payToken.approve(sablierContractAddress, _salaryAmount);
-
-      // the salary id is needed later to withdraw from or cancel the salary
-      uint256 _sablierSalaryId = Sablier(sablierContractAddress).createSalary(lenderAddress, _salaryAmount, acceptedPayTokenAddress, _salaryStartTime, _salaryStopTime);
-      lentERC721List[tokenAddress][tokenId].sablierSalaryId = _sablierSalaryId;
-    }
+    createSalaryIfPossible(tokenAddress, tokenId);
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
   }
@@ -178,35 +145,61 @@ contract ERC721Lending is Initializable {
 
       uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
       if (_sablierSalaryId != 0) {
-//        // get balance that is not streamed during period, it will be returned to borrower
+        // get balance that is not streamed during period, it will be returned to borrower
         (
-          ,
-          ,
-          uint256 _streamSalaryAmount,
-          ,
-          uint256 _streamStartTime,
-          ,
-          ,
-          uint256 _streamRatePerSecond
+        ,
+        ,
+        uint256 _streamSalaryAmount,
+        ,
+        uint256 _streamStartTime,
+        uint256 _streamStopTime,
+        ,
+        uint256 _streamRatePerSecond
         ) = Sablier(sablierContractAddress).getSalary(_sablierSalaryId);
 
-        uint256 _balanceNotStreamed = _streamSalaryAmount - (now - _streamStartTime) * _streamRatePerSecond;
+        int256 _balanceNotStreamed = 0;
+        if (now < _streamStopTime) {
+          _balanceNotStreamed = int256(_streamSalaryAmount) - int256(SafeMath.mul(now - _streamStartTime, _streamRatePerSecond));
+        }
 
         // cancel salary to lender if sablier salary exists
         Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
         lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
 
+        // check if lending entry has fees
+        uint256 _platformFeeToCollect = 0;
+        uint256 _feesPercent = lentERC721List[tokenAddress][tokenId].platformFeesPercent;
+        if (_feesPercent > 0) {
+          _platformFeeToCollect = SafeMath.mul(SafeMath.div(_streamSalaryAmount, 100), _feesPercent);
+        }
+
         if (_balanceNotStreamed > 0) {
-          IERC20(acceptedPayTokenAddress).transfer(_borrower, _balanceNotStreamed);
+          // check if lending has fees
+          if (_platformFeeToCollect > 0) {
+            // lending did not go through full period, fees percent will be lower, lets refund to lender
+            uint256 _actualSalaryLenderReceives = SafeMath.sub(_streamSalaryAmount, uint256(_balanceNotStreamed));
+            uint256 _platformFeeToCollectUpdated = SafeMath.mul(SafeMath.div(_actualSalaryLenderReceives, 100), _feesPercent);
+            uint256 _platformFeeToRefund = SafeMath.sub(_platformFeeToCollect, _platformFeeToCollectUpdated);
+            _platformFeeToCollect =_platformFeeToCollectUpdated;
+            IERC20(acceptedPayTokenAddress).transfer(lenderAddress, uint256(_platformFeeToRefund));
+          }
+
+          // return unstreamed balance to borrower
+          IERC20(acceptedPayTokenAddress).transfer(_borrower, uint256(_balanceNotStreamed));
+        }
+
+        // check if fees collecting address set and lending has fees
+        if (feesContractAddress != address(0) && _platformFeeToCollect > 0) {
+          IERC20(acceptedPayTokenAddress).transfer(feesContractAddress, _platformFeeToCollect);
         }
       } else {
-        // send lender his interest
+        // legacy: send lender his interest
         uint256 _earningGoal = lentERC721List[tokenAddress][tokenId].earningGoal;
         IERC20(acceptedPayTokenAddress).transfer(lenderAddress, _earningGoal);
       }
     } else {
       // lender claimed collateral, this is borrower's last call, let's reset everything
-      lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0); // reset details
+      lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0, 0); // reset details
     }
 
     emit ERC721ForLendUpdated(tokenAddress, tokenId);
@@ -240,6 +233,44 @@ contract ERC721Lending is Initializable {
     }
   }
 
+  function createSalaryIfPossible(address tokenAddress, uint256 tokenId) internal {
+    if (sablierContractAddress != address(0)) {
+      uint256 _salaryStartTime = now + 60;
+      uint256 _salaryStopTime = _salaryStartTime + (lentERC721List[tokenAddress][tokenId].durationHours * 3600);
+      uint256 _actualSalaryAmount = lentERC721List[tokenAddress][tokenId].earningGoal;
+
+      // set platform fees percent for borrowed entry
+      // v1.1
+//      uint256 _feesPercent = 5;
+//      lentERC721List[tokenAddress][tokenId].platformFeesPercent = _feesPercent;
+
+      // reserve fees percent from salary
+//      uint256 _actualSalaryAmountAfterPlatformFees = SafeMath.sub(
+//        _actualSalaryAmount,
+//        SafeMath.mul(SafeMath.div(_actualSalaryAmount, 100), _feesPercent)
+//      );
+
+      // per Sablier docs – deposit amount must be divided by the time delta
+      // and then the remainder subtracted from the initial deposit number
+      uint256 _timeDelta = _salaryStopTime - _salaryStartTime;
+      uint256 _salaryAmount = _actualSalaryAmount - (_actualSalaryAmount % _timeDelta);
+
+      // approve amount for Sablier contract usage
+      IERC20(acceptedPayTokenAddress).approve(sablierContractAddress, _salaryAmount);
+
+      // the salary id is needed later to withdraw from or cancel the salary
+      uint256 _sablierSalaryId = Sablier(sablierContractAddress).createSalary(
+        lentERC721List[tokenAddress][tokenId].lender,
+        _salaryAmount,
+        acceptedPayTokenAddress,
+        _salaryStartTime,
+        _salaryStopTime
+      );
+
+      lentERC721List[tokenAddress][tokenId].sablierSalaryId = _sablierSalaryId;
+    }
+  }
+
   function removeFromLending(address tokenAddress, uint256 tokenId) public {
     require(lentERC721List[tokenAddress][tokenId].lender == msg.sender, 'Claim: Cannot claim not owned lend');
 
@@ -257,7 +288,7 @@ contract ERC721Lending is Initializable {
     }
     IERC721(tokenAddress).transferFrom(address(this), msg.sender, tokenId);
 
-    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0); // reset details
+    lentERC721List[tokenAddress][tokenId] = ERC721ForLend(0, 0, 0, 0, address(0), address(0), false, 0, 0); // reset details
 
     // reset lenders to sent token mapping, swap with last element to fill the gap
     removeFromLendersWithTokens(tokenAddress, tokenId);
@@ -279,12 +310,23 @@ contract ERC721Lending is Initializable {
 
     uint256 _sablierSalaryId = lentERC721List[tokenAddress][tokenId].sablierSalaryId;
     if (_sablierSalaryId != 0) {
+      // get salary amount to send to fees collector address
+      (,, uint256 _streamSalaryAmount,,,,,) = Sablier(sablierContractAddress).getSalary(_sablierSalaryId);
+
       // if salary exists cancel salary and send only initial worth collateral amount
       IERC20(acceptedPayTokenAddress).transfer(msg.sender, lentERC721List[tokenAddress][tokenId].initialWorth);
       Sablier(sablierContractAddress).cancelSalary(_sablierSalaryId);
       lentERC721List[tokenAddress][tokenId].sablierSalaryId = 0;
+
+      // check if lending entry has fees
+      uint256 _feesPercent = lentERC721List[tokenAddress][tokenId].platformFeesPercent;
+      if (feesContractAddress != address(0) && _feesPercent > 0) {
+        // send collected fees to collecting contract address
+        uint256 _platformFeeToCollect = SafeMath.mul(SafeMath.div(_streamSalaryAmount, 100), _feesPercent);
+        IERC20(acceptedPayTokenAddress).transfer(feesContractAddress, _platformFeeToCollect);
+      }
     } else {
-      // send interest and collateral sum amount
+      // legacy: send interest and collateral sum amount
       uint256 _collateralSum = calculateLendSum(tokenAddress, tokenId);
       IERC20(acceptedPayTokenAddress).transfer(msg.sender, _collateralSum);
     }

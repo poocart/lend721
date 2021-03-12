@@ -7,7 +7,8 @@ import {
   LEND721__lentERC721ListResult
 } from './generated/LEND721/LEND721';
 import { ERC721ForLend } from './generated/schema';
-import {LegacyLEND721} from "./generated/LEND721/LegacyLEND721";
+import { PreSablierLEND721 } from "./generated/LEND721/PreSablierLEND721";
+import { PreFeesLEND721 } from "./generated/LEND721/PreFeesLEND721";
 
 export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
   let tokenAddress = event.params.tokenAddress;
@@ -24,9 +25,15 @@ export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
   // try latest first
   let lendEntryResult = contract.try_lentERC721List(tokenAddress, tokenId);
 
-  // if reverted try with legacy contract call without Sablier integration
+  // if reverted try with pre Sablier contract call
   if (lendEntryResult.reverted) {
-    let legacyContract = LegacyLEND721.bind(event.address);
+    let legacyContract = PreSablierLEND721.bind(event.address);
+    lendEntryResult = legacyContract.try_lentERC721List(tokenAddress, tokenId) as ethereum.CallResult<LEND721__lentERC721ListResult>;
+  }
+
+  // if reverted try with pre fees contract call
+  if (lendEntryResult.reverted) {
+    let legacyContract = PreFeesLEND721.bind(event.address);
     lendEntryResult = legacyContract.try_lentERC721List(tokenAddress, tokenId) as ethereum.CallResult<LEND721__lentERC721ListResult>;
   }
 
@@ -57,9 +64,9 @@ export function handleERC721ForLendUpdated(event: ERC721ForLendUpdated): void {
         ' on transaction hash ' + event.transaction.hash.toHex() +
         ' for LEND721 contract ' + event.address.toHex() +
         ' on NFT contract ' + tokenAddress.toHex() + '-' + tokenId.toHex()
-    , [
-      event.block.number.toHex()
-    ])
+        , [
+          event.block.number.toHex()
+        ])
   }
 }
 

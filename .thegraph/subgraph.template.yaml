@@ -18,8 +18,10 @@ dataSources:
       abis:
         - name: LEND721
           file: ./../abi/lend721.json
-        - name: LegacyLEND721
-          file: ./legacyAbi/legacyLend721.json
+        - name: PreSablierLEND721
+          file: ./legacyAbi/preSablierLend721.json
+        - name: PreFeesLEND721
+          file: ./legacyAbi/preFeesLend721.json
       eventHandlers:
         - event: ERC721ForLendUpdated(address,uint256)
           handler: handleERC721ForLendUpdated
