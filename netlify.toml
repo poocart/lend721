@@ -1,7 +1,7 @@
-[build]
-base = "client/"
-publish = "out/"
-command = "yarn next build && yarn next export"
+#[build]
+#base = "client/"
+#publish = "out/"
+#command = "yarn next build && yarn next export"
 
 [build.environment]
 ETHEREUM_NETWORK = "rinkeby"
