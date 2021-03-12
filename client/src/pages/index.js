@@ -94,6 +94,7 @@ const LogoLabel = styled.div`
 const ContentLink = styled.a`
   font-weight: 800;
   &, &:visited, &:hover { color: inherit; }
+  margin: 0 5px;
 `;
 
 const renderSettingsTable = (data, setCollectiblePreviewTransaction, isBorrowersTable) => {
