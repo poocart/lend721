@@ -32,7 +32,7 @@ Note: Smart Contract calls are proxied to main Smart Contract so calls destinati
 - [x] Deploy Smart Contract to mainnet
 - [x] Verify Smart Contract in mainnet Etherscan
 - [x] Put lenders addresses with lent tokens somwehere outside of smart contract (UX improvement) – (note: solved with thegraph.com)
-- [ ] Show message when collateral was already taken on expired lend
+- [x] Show message when collateral was already taken on expired lend
 - [ ] Show success or error messages on each transaction
 - [ ] Email reminders for borrower or lender
 - [ ] Allow edit lend
