@@ -9,4 +9,5 @@ type ERC721ForLend @entity {
     lenderClaimedCollateral: Boolean!
     tokenAddress: Bytes!
     tokenId: BigInt!
+    sablierStreamId: BigInt
 }

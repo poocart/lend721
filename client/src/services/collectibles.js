@@ -1,7 +1,11 @@
 import axios from 'axios';
+import isEmpty from 'lodash/isEmpty';
 
 // utils
 import { isProduction, pause } from '../utils';
+
+// local
+import { isValidNFT } from './contracts';
 
 
 const mapFromOpenSea = (data) => data.map(({
@@ -11,13 +15,18 @@ const mapFromOpenSea = (data) => data.map(({
   image_url: image,
   image_preview_url: preview,
   asset_contract: { address: tokenAddress },
-}) => ({
-  title: name || 'Unnamed ERC-721',
-  backgroundColor,
-  image: image || preview,
-  tokenAddress,
-  tokenId,
-}));
+  traits = [],
+}) => {
+  const attributes = traits.map(({ trait_type: title, value }) => ({ title, value }));
+  return {
+    title: name || 'Unnamed ERC-721',
+    backgroundColor,
+    image: image || preview,
+    tokenAddress,
+    tokenId,
+    attributes,
+  };
+});
 
 const getOpenSeaHostname = () => `https://${isProduction ? '' : 'rinkeby-'}api.opensea.io`;
 
@@ -57,4 +66,15 @@ export const getCollectibleByTokenData = (tokenAddress, tokenId, attempt) => {
       await pause(attempt);
       return getCollectibleByTokenData(tokenAddress, tokenId, attempt || 2);
     });
+};
+
+export const filterValidCollectibles = async (collectibles) => {
+  const validatedAccountCollectibles = await Promise.all(collectibles.map(async (collectible) => {
+    const isValid = await isValidNFT(collectible.tokenAddress, collectible.tokenId);
+    if (!isValid) return null;
+
+    return collectible;
+  }));
+
+  return validatedAccountCollectibles.filter((collectible) => !isEmpty(collectible));
 };

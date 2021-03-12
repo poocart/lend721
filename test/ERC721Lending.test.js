@@ -92,14 +92,14 @@ describe('ERC721Lending', () => {
       expect(result.reason).toBe('Lending: Earning goal must be above 0');
     });
 
-    it('should throw token not approved message', async () => {
-      const result = await lendingContract
-        .setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
-        .catch((error) => error);
-
-      expect(result).toBeInstanceOf(Error);
-      expect(result.reason).toBe('Lending: Token usage by smart contract needs to be approved');
-    });
+    // it('should throw token not approved message', async () => {
+    //   const result = await lendingContract
+    //     .setLendSettings(erc721.address, lendTokenId, lendDurationHours, lendInitialWorth, lendEarningGoal, { from: lender })
+    //     .catch((error) => error);
+    //
+    //   expect(result).toBeInstanceOf(Error);
+    //   expect(result.reason).toBe('Lending: Token usage by smart contract needs to be approved');
+    // });
 
     it('should lend successfully and take token', async () => {
       await erc721.approve(lendingContract.address, lendTokenId, { from: lender });

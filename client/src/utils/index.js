@@ -42,17 +42,27 @@ export const isCaseInsensitiveMatch = (a, b) => {
 
 export const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+export const isEmptyAddress = (
+  address,
+) => !address || isCaseInsensitiveMatch(address, EMPTY_ADDRESS);
+
 export const filterOwnedCollectibles = (collectibles) => collectibles.filter(({ type }) => [
   AVAILABLE_FOR_LENDING,
   APPROVED_FOR_LENDING,
 ].includes(type));
 
-export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(({ type }) => [
+export const filterCollectiblesToBorrow = (collectibles) => collectibles.filter(({
+  type,
+  extra,
+}) => isEmptyAddress(extra.borrowerAddress) && [
   AVAILABLE_FOR_BORROW,
   APPROVED_FOR_BORROWING,
 ].includes(type));
 
-export const filterLentCollectibles = (collectibles) => collectibles.filter(({ type }) => [
+export const filterLentCollectibles = (collectibles) => collectibles.filter(({
+  type,
+  extra,
+}) => !extra.lenderClaimedCollateral && [
   SET_FOR_LENDING,
   LENT_AND_NOT_OWNED,
 ].includes(type));
@@ -98,9 +108,5 @@ export const pause = (
 ) => new Promise(resolve => setTimeout(resolve, (multiplier || 1) * 1000));
 
 export const isProduction = !!process.env.PRODUCTION;
-
-export const isEmptyAddress = (
-  address,
-) => !address || isCaseInsensitiveMatch(address, EMPTY_ADDRESS);
 
 export const getEtherscanHostname = () => ` https://${isProduction ? '' : 'rinkeby.'}etherscan.io`;

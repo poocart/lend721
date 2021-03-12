@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import isEmpty from 'lodash/isEmpty';
 import uniqueId from 'lodash/uniqueId';
@@ -31,14 +31,37 @@ const Card = styled.div`
   text-align: center;
   flex: 0 0 200px;
   margin: 0px 15px 15px;
-  padding: 15px;
+  padding: 10px;
   text-align: center;
   flex-wrap: wrap;
+  position: relative;
+`;
+
+const DetailsButton = styled.div`
+  display: none;
+  position: absolute;
+  background: #000; 
+  padding: 8px 10px;
+  border: 1px solid #3D0158;
+  cursor: pointer;
+  color: #fff;
+  border-radius: 5px;
+  overflow: hidden;
+  left: 50px;
+  top: 30%;
+  &:hover {
+    display: block;
+    text-decoration: underline;
+  }
 `;
 
 const CardImage = styled.img`
   max-width: 100%;
   display: inline-block;
+  border-radius: 5px;
+  &:hover ~ ${DetailsButton} {
+    display: block;
+  }
 `;
 
 const CardButton = styled.span`
@@ -54,7 +77,7 @@ const CardButton = styled.span`
   padding: 8px 10px;
   cursor: pointer;
   color: #fff;
-  margin-top: 15px;
+  margin-top: 10px;
   border-radius: 5px;
   overflow: hidden;
 `;
@@ -71,6 +94,7 @@ const CardsGrid = ({
   invertedCardButton,
   checkIfDisabled,
 }) => {
+  const [tokenDetails, setTokenDetails] = useState({});
   if (data == null) return <Loader style={{ marginTop: 65 }} size="40px" />;
   return (
     <CardsWrapper>
@@ -81,6 +105,7 @@ const CardsGrid = ({
         return (
           <Card key={`${uniqueId('card_')}`} backgroundColor={backgroundColor}>
             <CardImage src={image || notFoundImage} />
+            {/*<DetailsButton onClick={() => setTokenDetails(data)}>Token Details</DetailsButton>*/}
             <CardButton
               inverted={invertedCardButton}
               onClick={() => disabled ? {} : onCardButtonClick(item)}
