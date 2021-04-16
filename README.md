@@ -1,4 +1,4 @@
-# Ethereum ERC-721 tokens lending platform
+# BSC ERC-721 tokens lending platform
 
 ![](https://github.com/poocart/lend721/blob/develop/preview.png)
 
