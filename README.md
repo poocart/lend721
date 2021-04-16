@@ -1,18 +1,16 @@
-# BSC ERC-721 tokens lending platform
-
-![](https://github.com/poocart/lend721/blob/develop/preview.png)
+# BSC BEP-721 tokens lending platform
 
 ## 💡 Description
-LEND721 is Ethereum Smart Contract that allows lending ERC-721 Smart Contracts (NFT)
+It is Smart Contract that allows lending BEP-721 Smart Contracts (NFT)
 and gain interest from it. On the other hand it allows to borrow same NFT's that are
-set for lending by paying collateral to LEND721 which handles the lend process.
+set for lending by paying collateral to Dapp which handles the lend process.
 
 Current stage: **beta**.
 
 ## 🏹 Deployed client dApps on Netlify
 - Mainnet: [https://lend721.app](https://lend721.app)
 - Rinkeby: [https://rinkeby.lend721.app](https://rinkeby.lend721.app)
-- Binance smart chain: [https://dreamy-bell-874b39.netlify.app/](https://dreamy-bell-874b39.netlify.app/)
+- Binance Smart Chain: [https://dreamy-bell-874b39.netlify.app/](https://dreamy-bell-874b39.netlify.app/)
 
 ## 🏠 Smart Contract addresses across Ethereum networks
 - Mainnet: [0xA133541435cAeB964f572132acd8FEAC3Ed1D80B](https://etherscan.io/address/0xA133541435cAeB964f572132acd8FEAC3Ed1D80B)
